@@ -1,5 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TextInput, Alert } from "react-native";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  Alert,
+  FlatList,
+  Dimensions,
+  ViewToken,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   Easing,
@@ -15,7 +23,184 @@ import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { truncateAddress } from "../utils/format";
 import { colors } from "../theme/colors";
 
-export function OnboardingScreen() {
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// ─── Welcome Slides ──────────────────────────────────────────────────
+
+interface Slide {
+  id: string;
+  icon: string;
+  title: string;
+  body: string;
+}
+
+const SLIDES: Slide[] = [
+  {
+    id: "truth",
+    icon: "◈",
+    title: "Truth in every pixel",
+    body: "In a world of AI fakes and manipulated media, Candor makes every photo cryptographically verifiable on Solana. If it's on Candor, it's real.",
+  },
+  {
+    id: "sealed",
+    icon: "⬡",
+    title: "Sealed at capture",
+    body: "The moment you tap the shutter, your photo is hashed and recorded on-chain. No filters, no edits, no tampering possible after the fact.",
+  },
+  {
+    id: "location",
+    icon: "◎",
+    title: "Your location, your choice",
+    body: "Toggle GPS to prove where you were. Coordinates are fuzzed to ~100m — enough to verify the area, never your exact spot. Off by default.",
+  },
+  {
+    id: "vouch",
+    icon: "◇",
+    title: "Vouch with real SOL",
+    body: "Love a photo? Vouch for it. Real SOL goes directly to the creator — no middlemen, no algorithms. Just people backing truth.",
+  },
+];
+
+function WelcomeCarousel({ onComplete }: { onComplete: () => void }) {
+  const insets = useSafeAreaInsets();
+  const flatListRef = useRef<FlatList<Slide>>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const isLastSlide = activeIndex === SLIDES.length - 1;
+
+  // Entrance animation
+  const contentOpacity = useSharedValue(0);
+  const contentTranslateY = useSharedValue(20);
+
+  useEffect(() => {
+    contentOpacity.value = withTiming(1, { duration: 600 });
+    contentTranslateY.value = withTiming(0, {
+      duration: 600,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, []);
+
+  const entranceStyle = useAnimatedStyle(() => ({
+    opacity: contentOpacity.value,
+    transform: [{ translateY: contentTranslateY.value }],
+  }));
+
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index != null) {
+        setActiveIndex(viewableItems[0].index);
+      }
+    },
+    []
+  );
+
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+
+  const handleNext = () => {
+    if (isLastSlide) {
+      onComplete();
+    } else {
+      flatListRef.current?.scrollToIndex({
+        index: activeIndex + 1,
+        animated: true,
+      });
+    }
+  };
+
+  const renderSlide = ({ item }: { item: Slide }) => (
+    <View
+      style={{ width: SCREEN_WIDTH }}
+      className="px-8 justify-center items-center"
+    >
+      {/* Icon */}
+      <Text
+        style={{ fontSize: 48, color: colors.primary, marginBottom: 24 }}
+      >
+        {item.icon}
+      </Text>
+
+      {/* Title */}
+      <Text className="text-text-primary font-display-bold text-2xl text-center mb-4">
+        {item.title}
+      </Text>
+
+      {/* Body */}
+      <Text className="text-text-secondary text-base text-center leading-6 px-2">
+        {item.body}
+      </Text>
+    </View>
+  );
+
+  return (
+    <View
+      className="flex-1 bg-background"
+      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+    >
+      <Animated.View style={[entranceStyle, { flex: 1 }]}>
+        {/* Skip button */}
+        <View className="flex-row justify-end px-6 pt-4">
+          <AnimatedPressable haptic="light" onPress={onComplete}>
+            <Text className="text-text-tertiary text-sm">Skip</Text>
+          </AnimatedPressable>
+        </View>
+
+        {/* Slides */}
+        <View style={{ flex: 1, justifyContent: "center" }}>
+          <FlatList
+            ref={flatListRef}
+            data={SLIDES}
+            renderItem={renderSlide}
+            keyExtractor={(item) => item.id}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            bounces={false}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            getItemLayout={(_, index) => ({
+              length: SCREEN_WIDTH,
+              offset: SCREEN_WIDTH * index,
+              index,
+            })}
+          />
+        </View>
+
+        {/* Bottom: dots + button */}
+        <View className="px-8 pb-6 gap-6">
+          {/* Dot indicators */}
+          <View className="flex-row justify-center gap-2">
+            {SLIDES.map((_, i) => (
+              <View
+                key={i}
+                className="rounded-full"
+                style={{
+                  width: i === activeIndex ? 24 : 8,
+                  height: 8,
+                  backgroundColor:
+                    i === activeIndex ? colors.primary : colors.border,
+                }}
+              />
+            ))}
+          </View>
+
+          {/* Next / Get Started */}
+          <AnimatedPressable
+            haptic="medium"
+            onPress={handleNext}
+            className="bg-primary rounded-2xl py-4 items-center"
+          >
+            <Text className="text-background font-display-semibold text-base">
+              {isLastSlide ? "Get Started" : "Next"}
+            </Text>
+          </AnimatedPressable>
+        </View>
+      </Animated.View>
+    </View>
+  );
+}
+
+// ─── Setup Screen (wallet + username) ────────────────────────────────
+
+function SetupScreen() {
   const insets = useSafeAreaInsets();
   const { connected, walletAddress, connectWallet, disconnectWallet } =
     useWallet();
@@ -278,4 +463,16 @@ export function OnboardingScreen() {
       </Text>
     </View>
   );
+}
+
+// ─── Main Onboarding (carousel → setup) ─────────────────────────────
+
+export function OnboardingScreen() {
+  const [welcomeComplete, setWelcomeComplete] = useState(false);
+
+  if (!welcomeComplete) {
+    return <WelcomeCarousel onComplete={() => setWelcomeComplete(true)} />;
+  }
+
+  return <SetupScreen />;
 }

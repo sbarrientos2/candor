@@ -5,7 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { PhotoCard } from "../components/PhotoCard";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
-import { useFeedPhotos, useRefreshFeed } from "../hooks/usePhotos";
+import { useFeedPhotos, useRefreshFeed, useUserVouchedPhotoIds } from "../hooks/usePhotos";
 import { useVouch } from "../hooks/useVouch";
 import { useWallet } from "../hooks/useWallet";
 import { Photo, RootStackParamList } from "../types";
@@ -50,6 +50,7 @@ export function FeedScreen() {
   const refreshFeed = useRefreshFeed();
   const { vouch, isVouching, defaultAmount } = useVouch();
   const { walletAddress } = useWallet();
+  const { data: vouchedPhotoIds } = useUserVouchedPhotoIds(walletAddress);
   const [vouchingPhotoId, setVouchingPhotoId] = useState<string | null>(null);
 
   const handleVouch = useCallback(
@@ -77,11 +78,11 @@ export function FeedScreen() {
         }
         onVouch={() => handleVouch(item)}
         isVouching={vouchingPhotoId === item.id && isVouching}
-        hasVouched={false}
+        hasVouched={vouchedPhotoIds?.has(item.id) ?? false}
         vouchAmount={defaultAmount}
       />
     ),
-    [navigation, handleVouch, vouchingPhotoId, isVouching, defaultAmount]
+    [navigation, handleVouch, vouchingPhotoId, isVouching, defaultAmount, vouchedPhotoIds]
   );
 
   if (isLoading) {

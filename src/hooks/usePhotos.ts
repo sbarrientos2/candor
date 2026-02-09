@@ -104,7 +104,28 @@ export function useUserInfo(walletAddress: string | null) {
   });
 }
 
+export function useUserVouchedPhotoIds(walletAddress: string | null) {
+  return useQuery({
+    queryKey: ["vouches", "user", walletAddress],
+    queryFn: async (): Promise<Set<string>> => {
+      if (!walletAddress) return new Set();
+      const { data, error } = await supabase
+        .from("vouches")
+        .select("photo_id")
+        .eq("voucher_wallet", walletAddress);
+
+      if (error) throw error;
+      return new Set((data ?? []).map((v) => v.photo_id));
+    },
+    enabled: !!walletAddress,
+    staleTime: 30_000,
+  });
+}
+
 export function useRefreshFeed() {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: ["photos", "feed"] });
+  return () => {
+    queryClient.invalidateQueries({ queryKey: ["photos"] });
+    queryClient.invalidateQueries({ queryKey: ["vouches"] });
+  };
 }
