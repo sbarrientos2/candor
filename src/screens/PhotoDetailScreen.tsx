@@ -1,0 +1,308 @@
+import React, { useEffect } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  Linking,
+  Dimensions,
+} from "react-native";
+import { Image } from "expo-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import Animated, {
+  Easing,
+  useSharedValue,
+  useAnimatedStyle,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
+import { usePhotoDetail, usePhotoVouches } from "../hooks/usePhotos";
+import { useVouch } from "../hooks/useVouch";
+import { useWallet } from "../hooks/useWallet";
+import { VerificationBadge } from "../components/VerificationBadge";
+import { VouchButton } from "../components/VouchButton";
+import { AnimatedPressable } from "../components/ui/AnimatedPressable";
+import { SkeletonLoader } from "../components/ui/SkeletonLoader";
+import { SectionHeader } from "../components/ui/SectionHeader";
+import {
+  truncateAddress,
+  timeAgo,
+  formatSOL,
+} from "../utils/format";
+import { getExplorerUrl } from "../services/solana";
+import { RootStackParamList, Vouch } from "../types";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+export function PhotoDetailScreen() {
+  const insets = useSafeAreaInsets();
+  const route = useRoute<RouteProp<RootStackParamList, "PhotoDetail">>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { photoId } = route.params;
+
+  const { data: photo, isLoading } = usePhotoDetail(photoId);
+  const { data: vouches } = usePhotoVouches(photoId);
+  const { vouch, isVouching, defaultAmount } = useVouch();
+  const { walletAddress } = useWallet();
+
+  // Content entrance animation
+  const contentOpacity = useSharedValue(0);
+  const contentTranslateY = useSharedValue(12);
+
+  useEffect(() => {
+    if (photo) {
+      contentOpacity.value = withDelay(
+        150,
+        withTiming(1, { duration: 400 })
+      );
+      contentTranslateY.value = withDelay(
+        150,
+        withTiming(0, {
+          duration: 400,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
+    }
+  }, [photo]);
+
+  const contentStyle = useAnimatedStyle(() => ({
+    opacity: contentOpacity.value,
+    transform: [{ translateY: contentTranslateY.value }],
+  }));
+
+  if (isLoading || !photo) {
+    return (
+      <View className="flex-1 bg-background">
+        {/* Image skeleton */}
+        <SkeletonLoader
+          width={SCREEN_WIDTH}
+          height={SCREEN_WIDTH}
+          borderRadius={0}
+        />
+        {/* Content skeleton */}
+        <View className="px-4 py-4 gap-4">
+          <View className="flex-row items-center justify-between">
+            <SkeletonLoader width={140} height={18} borderRadius={8} />
+            <SkeletonLoader width={60} height={14} borderRadius={6} />
+          </View>
+          <SkeletonLoader width="80%" height={16} borderRadius={8} />
+          <SkeletonLoader width={100} height={36} borderRadius={18} />
+          <View style={{ height: 8 }} />
+          <SkeletonLoader width="100%" height={120} borderRadius={16} />
+          <View style={{ height: 8 }} />
+          <SkeletonLoader width={140} height={20} borderRadius={8} />
+          <SkeletonLoader width="100%" height={160} borderRadius={16} />
+        </View>
+      </View>
+    );
+  }
+
+  const hasVouched = vouches?.some((v) => v.voucher_wallet === walletAddress);
+  const isOwnPhoto = walletAddress === photo.creator_wallet;
+
+  const handleVouch = async () => {
+    await vouch(
+      photo.id,
+      photo.creator_wallet,
+      photo.image_hash,
+      defaultAmount
+    );
+  };
+
+  return (
+    <ScrollView
+      className="flex-1 bg-background"
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Full photo */}
+      <Image
+        source={{ uri: photo.image_url }}
+        style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH }}
+        contentFit="cover"
+        transition={200}
+      />
+
+      <Animated.View style={contentStyle} className="px-4 py-5 gap-5">
+        {/* Creator info + verification */}
+        <View className="flex-row items-center justify-between">
+          <AnimatedPressable
+            haptic="light"
+            onPress={() =>
+              navigation.navigate("UserProfile", {
+                walletAddress: photo.creator_wallet,
+              })
+            }
+            className="flex-row items-center"
+          >
+            <Text className="text-text-primary font-display-semibold text-base">
+              {photo.creator?.display_name ||
+                truncateAddress(photo.creator_wallet)}
+            </Text>
+            {photo.verification_tx && (
+              <View className="ml-1.5">
+                <VerificationBadge size="md" />
+              </View>
+            )}
+          </AnimatedPressable>
+          <Text className="text-text-tertiary text-xs">
+            {timeAgo(photo.created_at)}
+          </Text>
+        </View>
+
+        {/* Caption */}
+        {photo.caption && (
+          <Text className="text-text-secondary text-base leading-6">
+            {photo.caption}
+          </Text>
+        )}
+
+        {/* Vouch action + earnings row */}
+        <View className="flex-row items-center justify-between">
+          {!isOwnPhoto && (
+            <VouchButton
+              amountLamports={defaultAmount}
+              vouchCount={photo.vouch_count}
+              onPress={handleVouch}
+              isLoading={isVouching}
+              hasVouched={hasVouched}
+            />
+          )}
+          {photo.total_earned_lamports > 0 && (
+            <View className="bg-surface rounded-xl px-3.5 py-2">
+              <Text className="text-primary font-display-semibold text-sm">
+                {formatSOL(photo.total_earned_lamports)} earned
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Verification proof */}
+        <View>
+          <SectionHeader title="Verification Proof" />
+          <View className="bg-surface rounded-2xl p-4">
+            <ProofRow label="Image Hash" value={photo.image_hash} mono />
+
+            {photo.verification_tx && (
+              <ProofRow
+                label="Transaction"
+                value={truncateAddress(photo.verification_tx, 8)}
+                onPress={() =>
+                  Linking.openURL(getExplorerUrl(photo.verification_tx!))
+                }
+                isLink
+              />
+            )}
+
+            <ProofRow
+              label="Creator"
+              value={truncateAddress(photo.creator_wallet, 6)}
+              mono
+            />
+
+            {photo.latitude != null && photo.longitude != null && (
+              <ProofRow
+                label="Location"
+                value={`${photo.latitude.toFixed(6)}, ${photo.longitude.toFixed(6)}`}
+              />
+            )}
+
+            <ProofRow
+              label="Captured"
+              value={new Date(photo.created_at).toLocaleString()}
+              isLast
+            />
+          </View>
+        </View>
+
+        {/* Vouch list */}
+        {vouches && vouches.length > 0 && (
+          <View style={{ paddingBottom: insets.bottom + 16 }}>
+            <SectionHeader
+              title="Vouches"
+              subtitle={`${vouches.length} total`}
+            />
+            <View className="bg-surface rounded-2xl p-4">
+              {vouches.map((v: Vouch, index: number) => (
+                <View
+                  key={v.id}
+                  className={`flex-row items-center justify-between py-3 ${
+                    index < vouches.length - 1 ? "border-b border-border" : ""
+                  }`}
+                >
+                  <Text className="text-text-secondary text-sm">
+                    {v.voucher?.display_name ||
+                      truncateAddress(v.voucher_wallet)}
+                  </Text>
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-primary text-sm font-display-semibold">
+                      {formatSOL(v.amount_lamports)}
+                    </Text>
+                    <Text className="text-text-tertiary text-xs">
+                      {timeAgo(v.created_at)}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Bottom spacer if no vouches */}
+        {(!vouches || vouches.length === 0) && (
+          <View style={{ height: insets.bottom + 16 }} />
+        )}
+      </Animated.View>
+    </ScrollView>
+  );
+}
+
+function ProofRow({
+  label,
+  value,
+  mono = false,
+  isLink = false,
+  isLast = false,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  isLink?: boolean;
+  isLast?: boolean;
+  onPress?: () => void;
+}) {
+  const content = (
+    <View
+      className={`flex-row justify-between items-center py-2.5 ${
+        !isLast ? "border-b border-border" : ""
+      }`}
+    >
+      <Text className="text-text-tertiary text-xs">{label}</Text>
+      <Text
+        className={`text-sm ${
+          isLink
+            ? "text-primary"
+            : mono
+              ? "text-text-secondary"
+              : "text-text-secondary"
+        }`}
+        numberOfLines={1}
+        style={{ maxWidth: "60%" }}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+
+  if (isLink && onPress) {
+    return (
+      <AnimatedPressable haptic="light" onPress={onPress}>
+        {content}
+      </AnimatedPressable>
+    );
+  }
+
+  return content;
+}
