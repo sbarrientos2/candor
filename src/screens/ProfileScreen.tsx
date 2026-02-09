@@ -4,6 +4,7 @@ import {
   Text,
   TextInput,
   FlatList,
+  RefreshControl,
   Dimensions,
   Alert,
 } from "react-native";
@@ -17,6 +18,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
+import { useQueryClient } from "@tanstack/react-query";
 import { useWallet } from "../hooks/useWallet";
 import { useUserPhotos } from "../hooks/usePhotos";
 import { useEarnings, useSolPrice } from "../hooks/useEarnings";
@@ -53,9 +55,17 @@ export function ProfileScreen() {
   const [editName, setEditName] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [isSavingName, setIsSavingName] = useState(false);
-  const { data: photos, isLoading } = useUserPhotos(walletAddress);
-  const { data: earnings } = useEarnings(walletAddress);
+  const queryClient = useQueryClient();
+  const { data: photos, isLoading, isRefetching: isRefetchingPhotos } = useUserPhotos(walletAddress);
+  const { data: earnings, isRefetching: isRefetchingEarnings } = useEarnings(walletAddress);
   const { data: solPrice } = useSolPrice();
+  const isRefreshing = isRefetchingPhotos || isRefetchingEarnings;
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["photos", "user", walletAddress] });
+    queryClient.invalidateQueries({ queryKey: ["earnings", walletAddress] });
+    queryClient.invalidateQueries({ queryKey: ["sol-price"] });
+  };
 
   // Earnings card entrance animation
   const cardTranslateY = useSharedValue(16);
@@ -379,6 +389,15 @@ export function ProfileScreen() {
         numColumns={NUM_COLUMNS}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={{ paddingHorizontal: SCREEN_PAD, paddingBottom: 24 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.surface}
+          />
+        }
         ListEmptyComponent={
           <View className="items-center justify-center px-8 py-16 gap-4">
             <Text className="text-text-primary text-lg font-display-semibold text-center">
