@@ -27,6 +27,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0A0A"
       },
+      "newArchEnabled": true,
       "package": "com.candor.app",
       "permissions": [
         "CAMERA",
