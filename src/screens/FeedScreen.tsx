@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, Text, FlatList, RefreshControl, Dimensions } from "react-native";
+import { View, Text, FlatList, RefreshControl, Dimensions, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -11,6 +11,7 @@ import { useFeedPhotos, useRefreshFeed, useUserVouchedPhotoIds } from "../hooks/
 import { useVouch } from "../hooks/useVouch";
 import { useWallet } from "../hooks/useWallet";
 import { Photo, RootStackParamList } from "../types";
+import { formatSOL } from "../utils/format";
 import { colors } from "../theme/colors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -59,16 +60,28 @@ export function FeedScreen() {
   const [feedView, setFeedView] = useState<FeedView>("list");
 
   const handleVouch = useCallback(
-    async (photo: Photo) => {
-      setVouchingPhotoId(photo.id);
-      await vouch(
-        photo.id,
-        photo.creator_wallet,
-        photo.image_hash,
-        defaultAmount
+    (photo: Photo) => {
+      Alert.alert(
+        "Vouch for this photo?",
+        `This will send ${formatSOL(defaultAmount)} to the creator.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Vouch",
+            onPress: async () => {
+              setVouchingPhotoId(photo.id);
+              await vouch(
+                photo.id,
+                photo.creator_wallet,
+                photo.image_hash,
+                defaultAmount
+              );
+              setVouchingPhotoId(null);
+              refreshFeed();
+            },
+          },
+        ]
       );
-      setVouchingPhotoId(null);
-      refreshFeed();
     },
     [vouch, defaultAmount, refreshFeed]
   );

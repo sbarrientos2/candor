@@ -5,6 +5,7 @@ import {
   ScrollView,
   Linking,
   Dimensions,
+  Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -102,12 +103,24 @@ export function PhotoDetailScreen() {
   const hasVouched = vouches?.some((v) => v.voucher_wallet === walletAddress);
   const isOwnPhoto = walletAddress === photo.creator_wallet;
 
-  const handleVouch = async () => {
-    await vouch(
-      photo.id,
-      photo.creator_wallet,
-      photo.image_hash,
-      defaultAmount
+  const handleVouch = () => {
+    Alert.alert(
+      "Vouch for this photo?",
+      `This will send ${formatSOL(defaultAmount)} to the creator.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Vouch",
+          onPress: async () => {
+            await vouch(
+              photo.id,
+              photo.creator_wallet,
+              photo.image_hash,
+              defaultAmount
+            );
+          },
+        },
+      ]
     );
   };
 

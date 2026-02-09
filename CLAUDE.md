@@ -16,8 +16,8 @@ There is no test suite, linter, or formatter configured.
 
 ```
 src/
-  screens/         5 screens (Onboarding, Camera, Feed, Profile, PhotoDetail)
-  components/      6 reusable UI components + cluster data access
+  screens/         6 screens (Onboarding, Camera, Feed, Profile, PhotoDetail, UserProfile)
+  components/      7 reusable UI components + FeedMap + cluster data access
   hooks/           6 custom hooks (useWallet, useCamera, useVerification, useVouch, usePhotos, useEarnings)
   services/        4 service modules (supabase, solana, anchor, verification)
   stores/          1 Zustand store (authStore — persisted to AsyncStorage)
@@ -44,7 +44,8 @@ NavigationContainer
     ├── if !isOnboarded → OnboardingScreen
     └── if isOnboarded
         ├── MainTabs (Bottom Tabs: Camera | Feed | Profile)
-        └── PhotoDetail (pushed on stack from Feed or Profile)
+        ├── PhotoDetail (pushed on stack from Feed or Profile)
+        └── UserProfile (pushed on stack from Feed, PhotoDetail, or UserProfile)
 ```
 
 Auth gate is driven by `useAuthStore((s) => s.isOnboarded)` — a persisted boolean, not a token.
@@ -60,7 +61,7 @@ Auth gate is driven by `useAuthStore((s) => s.isOnboarded)` — a persisted bool
 Camera capture → read bytes via expo-file-system → SHA-256 via expo-crypto → optional GPS (fuzzy ~111m) → build Anchor `verify_photo` tx → MWA signs → on-chain confirmation → upload image to Supabase Storage → insert photo row in DB
 
 **Vouch:**
-Build Anchor `vouch` tx (SOL transfer from voucher to creator) → MWA signs → on-chain → insert vouch row in DB → call `increment_vouch` RPC
+Confirmation dialog → Build Anchor `vouch` tx (SOL transfer from voucher to creator) → MWA signs → on-chain → insert vouch row in DB → call `increment_vouch` RPC
 
 ## On-Chain Program (Anchor)
 
@@ -102,7 +103,12 @@ Discriminators are computed as `SHA-256("global:<snake_case_instruction_name>")[
 - **Image hashing**: Hashes the base64 string representation (not raw bytes). Deterministic for the same file.
 - **Location is opt-in**: Default OFF. When enabled, coordinates are fuzzed to ~111m (3 decimal places) via `fuzzyCoord()`.
 - **Feed query joins**: `users!creator_id(*)` — uses the FK column, not the wallet column.
-- **hasVouched in FeedScreen**: Currently hardcoded to `false` (TODO: check vouches table for current user).
+- **hasVouched in FeedScreen**: Uses `useUserVouchedPhotoIds` hook to check vouches table for current user.
+- **Vouch confirmation**: Both FeedScreen and PhotoDetailScreen show an Alert before sending SOL.
+- **Feed map view**: Toggle between list/map on FeedScreen. Map uses `react-native-maps` (requires Google Maps API key in app.json and native EAS build).
+- **Welcome carousel**: 4-slide onboarding carousel explains verification, GPS privacy, and vouching before wallet connect.
+- **Public user profiles**: Tapping creator names navigates to read-only UserProfileScreen.
+- **Pull-to-refresh**: Available on Feed and Profile screens.
 
 ## Code Style
 
@@ -144,6 +150,7 @@ Typography: System default (Roboto on Android). No custom fonts bundled.
 | react-native-worklets | ^0.7.2 | Required by NativeWind's CSS interop babel plugin |
 | expo-camera | ~16.0.18 | Tied to Expo SDK 52 |
 | zustand | ^5.0.11 | Persist middleware uses AsyncStorage |
+| react-native-maps | ^1.27.1 | Google Maps for feed map view; requires EAS build |
 
 ## Skills
 
