@@ -51,7 +51,13 @@
           "locationWhenInUsePermission": "Candor records your location to cryptographically verify where photos were taken."
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "react-native-maps",
+        {
+          "googleMapsApiKey": "AIzaSyCyQXJfq-wh2lzoWXoJS2mehfda-3Ji5PE"
+        }
+      ]
     ],
     "extra": {
       "eas": {
