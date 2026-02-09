@@ -29,6 +29,11 @@
       },
       "newArchEnabled": true,
       "package": "com.candor.app",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCyQXJfq-wh2lzoWXoJS2mehfda-3Ji5PE"
+        }
+      },
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",
@@ -52,13 +57,7 @@
           "locationWhenInUsePermission": "Candor records your location to cryptographically verify where photos were taken."
         }
       ],
-      "expo-font",
-      [
-        "react-native-maps",
-        {
-          "googleMapsApiKey": "AIzaSyCyQXJfq-wh2lzoWXoJS2mehfda-3Ji5PE"
-        }
-      ]
+      "expo-font"
     ],
     "extra": {
       "eas": {
