@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import { useWallet } from "../hooks/useWallet";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { VouchButton } from "../components/VouchButton";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
+import { BoostModal } from "../components/BoostModal";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 import { SectionHeader } from "../components/ui/SectionHeader";
 import {
@@ -47,6 +48,7 @@ export function PhotoDetailScreen() {
   const { data: vouches } = usePhotoVouches(photoId);
   const { vouch, isVouching, defaultAmount } = useVouch();
   const { walletAddress } = useWallet();
+  const [boostModalVisible, setBoostModalVisible] = useState(false);
 
   // Content entrance animation
   const contentOpacity = useSharedValue(0);
@@ -124,9 +126,22 @@ export function PhotoDetailScreen() {
     );
   };
 
+  const handleBoost = async (amountLamports: number) => {
+    const result = await vouch(
+      photo.id,
+      photo.creator_wallet,
+      photo.image_hash,
+      amountLamports
+    );
+    if (result) {
+      setBoostModalVisible(false);
+    }
+  };
+
   return (
+    <View className="flex-1 bg-background">
     <ScrollView
-      className="flex-1 bg-background"
+      className="flex-1"
       showsVerticalScrollIndicator={false}
     >
       {/* Full photo */}
@@ -174,13 +189,32 @@ export function PhotoDetailScreen() {
         {/* Vouch action + earnings row */}
         <View className="flex-row items-center justify-between">
           {!isOwnPhoto && (
-            <VouchButton
-              amountLamports={defaultAmount}
-              vouchCount={photo.vouch_count}
-              onPress={handleVouch}
-              isLoading={isVouching}
-              hasVouched={hasVouched}
-            />
+            <View className="flex-row items-center gap-2">
+              <VouchButton
+                amountLamports={defaultAmount}
+                vouchCount={photo.vouch_count}
+                onPress={handleVouch}
+                isLoading={isVouching}
+                hasVouched={hasVouched}
+              />
+              {!hasVouched && (
+                <AnimatedPressable
+                  haptic="light"
+                  scaleValue={0.94}
+                  onPress={() => setBoostModalVisible(true)}
+                  disabled={isVouching}
+                >
+                  <View
+                    className="rounded-full px-3.5 py-2 border border-primary/40"
+                    style={{ backgroundColor: "rgba(232,168,56,0.1)" }}
+                  >
+                    <Text className="text-primary text-xs font-display-semibold">
+                      Boost
+                    </Text>
+                  </View>
+                </AnimatedPressable>
+              )}
+            </View>
           )}
           {photo.total_earned_lamports > 0 && (
             <View className="bg-surface rounded-xl px-3.5 py-2">
@@ -268,6 +302,18 @@ export function PhotoDetailScreen() {
         )}
       </Animated.View>
     </ScrollView>
+
+    <BoostModal
+      visible={boostModalVisible}
+      onClose={() => setBoostModalVisible(false)}
+      onBoost={handleBoost}
+      isLoading={isVouching}
+      creatorName={
+        photo.creator?.display_name ||
+        truncateAddress(photo.creator_wallet)
+      }
+    />
+    </View>
   );
 }
 
