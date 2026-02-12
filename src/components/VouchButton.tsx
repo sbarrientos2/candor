@@ -99,7 +99,7 @@ export function VouchButton({
                     height: 20,
                     backgroundColor: hasVouched
                       ? "rgba(232,168,56,0.2)"
-                      : "rgba(10,10,10,0.2)",
+                      : "rgba(10,10,15,0.2)",
                   }}
                 >
                   <Text

@@ -126,13 +126,13 @@ Dark mode only. Color tokens defined in both `src/theme/colors.ts` (for programm
 
 | Token | Hex | Usage |
 |-------|-----|-------|
-| background | #0A0A0A | Screen backgrounds |
-| surface | #1A1A1A | Cards, inputs |
-| surface-raised | #242424 | Elevated elements |
-| border | #2A2A2A | Dividers |
+| background | #0A0A0F | Screen backgrounds |
+| surface | #14141A | Cards, inputs |
+| surface-raised | #1E1E26 | Elevated elements |
+| border | #25252E | Dividers |
 | primary | #E8A838 | Amber accent — vouch button, badge, earnings |
 | primary-light | #F5C563 | Active/hover states |
-| text-primary | #FFFFFF | Main text |
+| text-primary | #F0EDEA | Main text |
 | text-secondary | #999999 | Supporting text |
 | text-tertiary | #666666 | Muted text, placeholders |
 | success | #4ADE80 | Verified green |

@@ -12,18 +12,18 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CALLOUT_WIDTH = SCREEN_WIDTH * 0.7;
 
 const MAP_STYLE = [
-  { elementType: "geometry", stylers: [{ color: "#1A1A1A" }] },
+  { elementType: "geometry", stylers: [{ color: "#14141A" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#666666" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#0A0A0A" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#0A0A0F" }] },
   {
     featureType: "road",
     elementType: "geometry",
-    stylers: [{ color: "#2A2A2A" }],
+    stylers: [{ color: "#25252E" }],
   },
   {
     featureType: "water",
     elementType: "geometry",
-    stylers: [{ color: "#0A0A0A" }],
+    stylers: [{ color: "#0A0A0F" }],
   },
   {
     featureType: "poi",

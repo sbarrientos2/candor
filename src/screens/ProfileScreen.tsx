@@ -268,7 +268,7 @@ export function ProfileScreen() {
           haptic="light"
           onPress={disconnectWallet}
           className="flex-row items-center rounded-full px-3 py-1.5 mt-1"
-          style={{ backgroundColor: "rgba(42,42,42,0.6)" }}
+          style={{ backgroundColor: "rgba(37,37,46,0.6)" }}
         >
           <View
             className="rounded-full mr-1.5"

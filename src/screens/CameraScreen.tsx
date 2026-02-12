@@ -115,12 +115,12 @@ export function CameraScreen() {
           >
             {/* Smooth gradient backdrop */}
             <View className="absolute inset-0" pointerEvents="none">
-              <View style={{ flex: 1, backgroundColor: "rgba(10,10,10,0)" }} />
-              <View style={{ flex: 0.5, backgroundColor: "rgba(10,10,10,0.1)" }} />
-              <View style={{ flex: 0.5, backgroundColor: "rgba(10,10,10,0.25)" }} />
-              <View style={{ flex: 0.8, backgroundColor: "rgba(10,10,10,0.45)" }} />
-              <View style={{ flex: 1, backgroundColor: "rgba(10,10,10,0.65)" }} />
-              <View style={{ flex: 2, backgroundColor: "rgba(10,10,10,0.88)" }} />
+              <View style={{ flex: 1, backgroundColor: "rgba(10,10,15,0)" }} />
+              <View style={{ flex: 0.5, backgroundColor: "rgba(10,10,15,0.1)" }} />
+              <View style={{ flex: 0.5, backgroundColor: "rgba(10,10,15,0.25)" }} />
+              <View style={{ flex: 0.8, backgroundColor: "rgba(10,10,15,0.45)" }} />
+              <View style={{ flex: 1, backgroundColor: "rgba(10,10,15,0.65)" }} />
+              <View style={{ flex: 2, backgroundColor: "rgba(10,10,15,0.88)" }} />
             </View>
 
             <View className="px-5 pt-12 gap-4">
@@ -131,7 +131,7 @@ export function CameraScreen() {
                 placeholder="Add a caption..."
                 placeholderTextColor={colors.textTertiary}
                 className="rounded-2xl px-4 py-3.5 text-text-primary text-base"
-                style={{ backgroundColor: "rgba(26,26,26,0.9)" }}
+                style={{ backgroundColor: "rgba(20,20,26,0.9)" }}
                 maxLength={200}
                 multiline
               />

@@ -27,15 +27,15 @@ Before writing ANY UI code, internalize these constraints:
 ### Colors (defined in `src/theme/colors.ts` + `tailwind.config.js`)
 
 ```
-Background:     #0A0A0A  (bg-background)      — near-black, the canvas
-Surface:        #1A1A1A  (bg-surface)          — cards, inputs, modals
-Surface Raised: #242424  (bg-surface-raised)   — elevated cards, pressed states
-Border:         #2A2A2A  (border-border)       — subtle dividers
+Background:     #0A0A0F  (bg-background)      — near-black with cool undertone
+Surface:        #14141A  (bg-surface)          — cards, inputs, modals
+Surface Raised: #1E1E26  (bg-surface-raised)   — elevated cards, pressed states
+Border:         #25252E  (border-border)       — subtle dividers
 
 Primary:        #E8A838  (text-primary / bg-primary)  — warm amber: CTAs, badges, earnings
 Primary Light:  #F5C563  (text-primary-light)          — hover/active states
 
-Text Primary:   #FFFFFF  (text-text-primary)   — headings, important content
+Text Primary:   #F0EDEA  (text-text-primary)   — warm off-white, main text
 Text Secondary: #999999  (text-text-secondary) — descriptions, metadata
 Text Tertiary:  #666666  (text-text-tertiary)  — timestamps, hints
 
@@ -53,7 +53,7 @@ Candor is a **dark-first** app. The warm amber (#E8A838) is the signature accent
 - Apply amber to large surface areas — it loses its power
 
 **Do:**
-- Let the dark background create depth through layered surfaces (#0A0A0A → #1A1A1A → #242424)
+- Let the dark background create depth through layered surfaces (#0A0A0F → #14141A → #1E1E26)
 - Use amber as punctuation, not prose
 - Create subtle depth with opacity and blur rather than strong color contrasts
 - Use text opacity levels (100%, 60%, 40%) for information hierarchy

@@ -8,13 +8,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "#0A0A0A",
-        surface: "#1A1A1A",
-        "surface-raised": "#242424",
-        border: "#2A2A2A",
+        background: "#0A0A0F",
+        surface: "#14141A",
+        "surface-raised": "#1E1E26",
+        border: "#25252E",
         primary: "#E8A838",
         "primary-light": "#F5C563",
-        "text-primary": "#FFFFFF",
+        "text-primary": "#F0EDEA",
         "text-secondary": "#999999",
         "text-tertiary": "#666666",
         success: "#4ADE80",
