@@ -16,6 +16,7 @@ import Animated, {
   withTiming,
   withSpring,
 } from "react-native-reanimated";
+import { Image } from "expo-image";
 import { useWallet } from "../hooks/useWallet";
 import { useAuthStore } from "../stores/authStore";
 import { supabase } from "../services/supabase";
@@ -357,9 +358,19 @@ function SetupScreen() {
     >
       {/* Logo / Title */}
       <Animated.View style={heroStyle} className="items-center mb-12">
+        {/* Logo mark */}
+        <Image
+          source={require("../../assets/candor-logo.png")}
+          style={{ width: 80, height: 80, marginBottom: 16 }}
+          contentFit="contain"
+        />
+
+        {/* App name */}
         <Text className="text-primary font-display-bold text-4xl mb-2">
           Candor
         </Text>
+
+        {/* Tagline */}
         <Text className="text-text-secondary text-center text-base leading-6">
           Every photo verified. Every vouch costs real SOL.
         </Text>
