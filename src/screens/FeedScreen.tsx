@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, FlatList, RefreshControl, Dimensions, Alert } from "react-native";
+import { View, Text, RefreshControl, Dimensions, Alert } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -205,7 +206,7 @@ export function FeedScreen() {
       {feedView === "map" ? (
         <FeedMap photos={explorePhotos ?? []} />
       ) : (
-        <FlatList
+        <FlashList
           data={activePhotos}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
@@ -244,6 +245,7 @@ export function FeedScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
 
       <VouchSuccessToast
         visible={showSuccessToast}
