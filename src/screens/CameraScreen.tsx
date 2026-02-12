@@ -16,6 +16,7 @@ import { useWallet } from "../hooks/useWallet";
 import { LoadingOverlay } from "../components/LoadingOverlay";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 
 export function CameraScreen() {
@@ -32,19 +33,29 @@ export function CameraScreen() {
   const { verifyAndUpload, isVerifying, error } = useVerification();
   const { connected } = useWallet();
   const [caption, setCaption] = useState("");
+  const [facing, setFacing] = useState<"front" | "back">("back");
   const [includeLocation, setIncludeLocation] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Ring pulse animation values
   const ringScale = useSharedValue(1);
   const ringOpacity = useSharedValue(0);
+  const flashOpacity = useSharedValue(0);
 
   const ringPulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: ringScale.value }],
     opacity: ringOpacity.value,
   }));
 
+  const flashStyle = useAnimatedStyle(() => ({
+    opacity: flashOpacity.value,
+  }));
+
   const handleCapture = async () => {
+    // White flash
+    flashOpacity.value = 0.6;
+    flashOpacity.value = withTiming(0, { duration: 150 });
+
     // Trigger ring pulse
     ringScale.value = 1;
     ringOpacity.value = 0.6;
@@ -203,7 +214,42 @@ export function CameraScreen() {
   return (
     <View className="flex-1 bg-background">
       <StatusBar barStyle="light-content" />
-      <CameraView ref={cameraRef} style={{ flex: 1 }} facing="back">
+      <CameraView ref={cameraRef} style={{ flex: 1 }} facing={facing}>
+        {/* Flash overlay */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            flashStyle,
+            {
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "#FFFFFF",
+            },
+          ]}
+        />
+
+        {/* Flip camera — top left */}
+        <AnimatedPressable
+          haptic="light"
+          scaleValue={0.92}
+          onPress={() => setFacing(f => f === "back" ? "front" : "back")}
+          style={{ position: "absolute", top: insets.top + 12, left: 16 }}
+        >
+          <View
+            className="rounded-full items-center justify-center"
+            style={{
+              width: 40,
+              height: 40,
+              backgroundColor: "rgba(0,0,0,0.5)",
+            }}
+          >
+            <Ionicons name="camera-reverse-outline" size={20} color="#FFFFFF" />
+          </View>
+        </AnimatedPressable>
+
         {/* GPS floating pill — top right */}
         <AnimatedPressable
           haptic="light"
@@ -212,21 +258,25 @@ export function CameraScreen() {
           style={{ position: "absolute", top: insets.top + 12, right: 16 }}
         >
           <View
-            className="flex-row items-center rounded-full px-3 py-2"
-            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+            className="flex-row items-center rounded-full px-3.5 py-2.5"
+            style={{
+              backgroundColor: "rgba(0,0,0,0.5)",
+              borderWidth: 1,
+              borderColor: includeLocation ? "rgba(74,222,128,0.3)" : "transparent",
+            }}
           >
-            <View
-              className="rounded-full mr-2"
-              style={{
-                width: 6,
-                height: 6,
-                backgroundColor: includeLocation
-                  ? colors.success
-                  : colors.textTertiary,
-              }}
+            <Ionicons
+              name={includeLocation ? "location" : "location-outline"}
+              size={14}
+              color={includeLocation ? colors.success : colors.textTertiary}
+              style={{ marginRight: 6 }}
             />
-            <Text className="text-text-primary text-xs">
-              {includeLocation ? "GPS On" : "GPS Off"}
+            <Text style={{
+              fontSize: 12,
+              color: includeLocation ? colors.success : colors.textSecondary,
+              fontFamily: "SpaceGrotesk_600SemiBold",
+            }}>
+              {includeLocation ? "Location on" : "Location off"}
             </Text>
           </View>
         </AnimatedPressable>
