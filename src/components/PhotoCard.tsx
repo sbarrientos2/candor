@@ -7,7 +7,9 @@ import Animated, {
   withDelay,
   withTiming,
   withSpring,
+  withSequence,
 } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { VerificationBadge } from "./VerificationBadge";
@@ -16,6 +18,7 @@ import { Avatar } from "./ui/Avatar";
 import { AnimatedPressable } from "./ui/AnimatedPressable";
 import { Photo, RootStackParamList } from "../types";
 import { timeAgo, truncateAddress, formatSOL } from "../utils/format";
+import { colors } from "../theme/colors";
 import { useDoubleTap } from "../hooks/useDoubleTap";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -66,8 +69,30 @@ export function PhotoCard({
     opacity: opacity.value,
   }));
 
+  // Double-tap vouch animation
+  const vouchIconScale = useSharedValue(0);
+  const vouchIconOpacity = useSharedValue(0);
+
+  const vouchIconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: vouchIconScale.value }],
+    opacity: vouchIconOpacity.value,
+  }));
+
   const handleDoubleTapVouch = useCallback(() => {
     if (isOwnPhoto || hasVouched || isVouching) return;
+
+    // Trigger visual feedback immediately
+    vouchIconScale.value = 0;
+    vouchIconOpacity.value = 1;
+    vouchIconScale.value = withSequence(
+      withSpring(1.3, { damping: 8, stiffness: 120 }),
+      withSpring(1, { damping: 12, stiffness: 100 })
+    );
+    vouchIconOpacity.value = withDelay(
+      500,
+      withTiming(0, { duration: 300 })
+    );
+
     onVouch();
   }, [isOwnPhoto, hasVouched, isVouching, onVouch]);
 
@@ -88,6 +113,32 @@ export function PhotoCard({
               contentFit="cover"
               transition={200}
             />
+            {/* Double-tap vouch visual feedback */}
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                vouchIconStyle,
+                {
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  alignItems: "center",
+                  justifyContent: "center",
+                },
+              ]}
+            >
+              <View style={{
+                shadowColor: "#E8A838",
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.5,
+                shadowRadius: 20,
+                elevation: 10,
+              }}>
+                <Ionicons name="checkmark-circle" size={72} color={colors.primary} />
+              </View>
+            </Animated.View>
           </Pressable>
 
           {/* Metadata below photo */}
