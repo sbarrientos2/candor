@@ -9,22 +9,27 @@ import {
   Alert,
 } from "react-native";
 import { Image } from "expo-image";
+// Dynamically imported in handlePickAvatar — requires EAS rebuild to work
+// import * as ImagePicker from "expo-image-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Animated, {
-  Easing,
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withSpring,
 } from "react-native-reanimated";
 import { useQueryClient } from "@tanstack/react-query";
 import { useWallet } from "../hooks/useWallet";
-import { useUserPhotos } from "../hooks/usePhotos";
+import { useUserPhotos, useUserInfo } from "../hooks/usePhotos";
 import { useEarnings, useSolPrice } from "../hooks/useEarnings";
+import { useFollowCounts } from "../hooks/useFollow";
 import { useAuthStore } from "../stores/authStore";
 import { supabase } from "../services/supabase";
+import { uploadAvatar } from "../services/verification";
 import { VerificationBadge } from "../components/VerificationBadge";
+import { Avatar } from "../components/ui/Avatar";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 import { SectionHeader } from "../components/ui/SectionHeader";
@@ -56,9 +61,12 @@ export function ProfileScreen() {
   const [editError, setEditError] = useState<string | null>(null);
   const [isSavingName, setIsSavingName] = useState(false);
   const queryClient = useQueryClient();
+  const { data: userInfo } = useUserInfo(walletAddress);
   const { data: photos, isLoading, isRefetching: isRefetchingPhotos } = useUserPhotos(walletAddress);
   const { data: earnings, isRefetching: isRefetchingEarnings } = useEarnings(walletAddress);
   const { data: solPrice } = useSolPrice();
+  const { data: followCounts } = useFollowCounts(walletAddress);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const isRefreshing = isRefetchingPhotos || isRefetchingEarnings;
 
   const handleRefresh = () => {
@@ -73,11 +81,8 @@ export function ProfileScreen() {
 
   useEffect(() => {
     if (earnings) {
-      cardTranslateY.value = withTiming(0, {
-        duration: 450,
-        easing: Easing.out(Easing.cubic),
-      });
-      cardOpacity.value = withTiming(1, { duration: 450 });
+      cardTranslateY.value = withSpring(0, { damping: 20, stiffness: 130 });
+      cardOpacity.value = withTiming(1, { duration: 400 });
     }
   }, [earnings]);
 
@@ -111,6 +116,32 @@ export function ProfileScreen() {
       </View>
     );
   }
+
+  // ─── Avatar picker ──────────────────────────────────────────────
+  const handlePickAvatar = async () => {
+    try {
+      const ImagePicker = await import("expo-image-picker");
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets[0]) return;
+
+      setIsUploadingAvatar(true);
+      const avatarUrl = await uploadAvatar(supabase, result.assets[0].uri, walletAddress!);
+      await supabase
+        .from("users")
+        .update({ avatar_url: avatarUrl })
+        .eq("wallet_address", walletAddress);
+      queryClient.invalidateQueries({ queryKey: ["user-info"] });
+    } catch (err: any) {
+      Alert.alert("Error", err.message || "Failed to update avatar");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   // ─── Username editing ─────────────────────────────────────────────
   const handleStartEdit = () => {
@@ -169,6 +200,20 @@ export function ProfileScreen() {
     <View className="px-4 gap-5 pb-4">
       {/* Profile header row */}
       <View className="flex-row items-start justify-between">
+        {/* Avatar */}
+        <AnimatedPressable
+          haptic="light"
+          onPress={handlePickAvatar}
+          disabled={isUploadingAvatar}
+          style={{ marginRight: 12, opacity: isUploadingAvatar ? 0.5 : 1 }}
+        >
+          <Avatar
+            uri={userInfo?.avatar_url}
+            name={displayName}
+            size="lg"
+          />
+        </AnimatedPressable>
+
         {/* Name + edit */}
         <View className="flex-1 mr-3">
           {isEditing ? (
@@ -234,6 +279,12 @@ export function ProfileScreen() {
           </Text>
         </AnimatedPressable>
       </View>
+
+      {/* Follower / Following counts */}
+      <Text className="text-text-tertiary text-xs">
+        {followCounts?.followers ?? 0} Followers{" · "}
+        {followCounts?.following ?? 0} Following
+      </Text>
 
       {/* Earnings card */}
       <Animated.View style={cardEntranceStyle}>

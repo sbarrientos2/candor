@@ -10,11 +10,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
-  Easing,
   useSharedValue,
   useAnimatedStyle,
   withDelay,
   withTiming,
+  withSpring,
 } from "react-native-reanimated";
 import { useWallet } from "../hooks/useWallet";
 import { useAuthStore } from "../stores/authStore";
@@ -72,11 +72,8 @@ function WelcomeCarousel({ onComplete }: { onComplete: () => void }) {
   const contentTranslateY = useSharedValue(20);
 
   useEffect(() => {
-    contentOpacity.value = withTiming(1, { duration: 600 });
-    contentTranslateY.value = withTiming(0, {
-      duration: 600,
-      easing: Easing.out(Easing.cubic),
-    });
+    contentOpacity.value = withTiming(1, { duration: 500 });
+    contentTranslateY.value = withSpring(0, { damping: 20, stiffness: 130 });
   }, []);
 
   const entranceStyle = useAnimatedStyle(() => ({
@@ -219,15 +216,12 @@ function SetupScreen() {
   const step1TranslateY = useSharedValue(16);
 
   useEffect(() => {
-    heroOpacity.value = withTiming(1, { duration: 500 });
-    heroTranslateY.value = withTiming(0, {
-      duration: 500,
-      easing: Easing.out(Easing.cubic),
-    });
-    step1Opacity.value = withDelay(200, withTiming(1, { duration: 400 }));
+    heroOpacity.value = withTiming(1, { duration: 450 });
+    heroTranslateY.value = withSpring(0, { damping: 20, stiffness: 130 });
+    step1Opacity.value = withDelay(200, withTiming(1, { duration: 350 }));
     step1TranslateY.value = withDelay(
       200,
-      withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) })
+      withSpring(0, { damping: 16, stiffness: 110 })
     );
   }, []);
 
@@ -247,11 +241,8 @@ function SetupScreen() {
 
   useEffect(() => {
     if (connected) {
-      step2Opacity.value = withTiming(1, { duration: 400 });
-      step2TranslateY.value = withTiming(0, {
-        duration: 400,
-        easing: Easing.out(Easing.cubic),
-      });
+      step2Opacity.value = withTiming(1, { duration: 350 });
+      step2TranslateY.value = withSpring(0, { damping: 16, stiffness: 110 });
     }
   }, [connected]);
 

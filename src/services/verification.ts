@@ -107,3 +107,41 @@ export async function uploadImage(
   const { data } = supabase.storage.from("photos").getPublicUrl(fileName);
   return data.publicUrl;
 }
+
+/**
+ * Upload avatar to Supabase Storage and return the public URL.
+ * Uses upsert to overwrite previous avatar. Deterministic path per wallet.
+ */
+export async function uploadAvatar(
+  supabase: any,
+  imageUri: string,
+  walletAddress: string
+): Promise<string> {
+  const response = await fetch(imageUri);
+  const blob = await response.blob();
+
+  const reader = new FileReader();
+  const base64 = await new Promise<string>((resolve) => {
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1]);
+    };
+    reader.readAsDataURL(blob);
+  });
+
+  const fileName = `avatars/${walletAddress}.jpg`;
+
+  // Remove existing avatar first (ignore errors — file may not exist yet)
+  await supabase.storage.from("photos").remove([fileName]);
+
+  const { error } = await supabase.storage
+    .from("photos")
+    .upload(fileName, decode(base64), {
+      contentType: "image/jpeg",
+    });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("photos").getPublicUrl(fileName);
+  return `${data.publicUrl}?t=${Date.now()}`;
+}

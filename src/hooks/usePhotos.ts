@@ -122,10 +122,49 @@ export function useUserVouchedPhotoIds(walletAddress: string | null) {
   });
 }
 
+export function useFollowingFeedPhotos(walletAddress: string | null) {
+  return useQuery({
+    queryKey: ["photos", "following", walletAddress],
+    queryFn: async (): Promise<Photo[]> => {
+      if (!walletAddress) return [];
+
+      // Step 1: fetch followed wallets
+      const { data: follows, error: followsError } = await supabase
+        .from("follows")
+        .select("following_wallet")
+        .eq("follower_wallet", walletAddress);
+
+      if (followsError) throw followsError;
+
+      const followedWallets = (follows ?? []).map((f) => f.following_wallet);
+      if (followedWallets.length === 0) return [];
+
+      // Step 2: fetch photos from followed creators
+      const { data, error } = await supabase
+        .from("photos")
+        .select(
+          `
+          *,
+          creator:users!creator_id(*)
+        `
+        )
+        .in("creator_wallet", followedWallets)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!walletAddress,
+    staleTime: 30_000,
+  });
+}
+
 export function useRefreshFeed() {
   const queryClient = useQueryClient();
   return () => {
     queryClient.invalidateQueries({ queryKey: ["photos"] });
     queryClient.invalidateQueries({ queryKey: ["vouches"] });
+    queryClient.invalidateQueries({ queryKey: ["follows"] });
   };
 }

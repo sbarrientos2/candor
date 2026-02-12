@@ -5,18 +5,22 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Animated, {
-  Easing,
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withSpring,
 } from "react-native-reanimated";
 import { useUserPhotos, useUserInfo } from "../hooks/usePhotos";
 import { useEarnings, useSolPrice } from "../hooks/useEarnings";
+import { useIsFollowing, useFollowCounts, useToggleFollow } from "../hooks/useFollow";
+import { useWallet } from "../hooks/useWallet";
 import { VerificationBadge } from "../components/VerificationBadge";
+import { Avatar } from "../components/ui/Avatar";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 import { SectionHeader } from "../components/ui/SectionHeader";
 import { truncateAddress, formatSOL, formatUSD } from "../utils/format";
+import { colors } from "../theme/colors";
 import { Photo, RootStackParamList } from "../types";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -33,10 +37,15 @@ export function UserProfileScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { walletAddress } = route.params;
 
+  const { walletAddress: myWallet } = useWallet();
   const { data: userInfo, isLoading: isLoadingUser } = useUserInfo(walletAddress);
   const { data: photos, isLoading: isLoadingPhotos } = useUserPhotos(walletAddress);
   const { data: earnings } = useEarnings(walletAddress);
   const { data: solPrice } = useSolPrice();
+  const { data: isFollowing } = useIsFollowing(myWallet, walletAddress);
+  const { data: followCounts } = useFollowCounts(walletAddress);
+  const { toggleFollow, isToggling } = useToggleFollow();
+  const isOwnProfile = myWallet === walletAddress;
 
   const isLoading = isLoadingUser || isLoadingPhotos;
 
@@ -48,11 +57,8 @@ export function UserProfileScreen() {
 
   useEffect(() => {
     if (earnings) {
-      cardTranslateY.value = withTiming(0, {
-        duration: 450,
-        easing: Easing.out(Easing.cubic),
-      });
-      cardOpacity.value = withTiming(1, { duration: 450 });
+      cardTranslateY.value = withSpring(0, { damping: 20, stiffness: 130 });
+      cardOpacity.value = withTiming(1, { duration: 400 });
     }
   }, [earnings]);
 
@@ -104,9 +110,52 @@ export function UserProfileScreen() {
   const renderHeader = () => (
     <View className="px-4 gap-5 pb-4">
       {/* Profile header */}
-      <Text className="text-text-primary font-display-bold text-2xl">
-        {displayName}
-      </Text>
+      <View className="flex-row items-center gap-3">
+        <Avatar
+          uri={userInfo?.avatar_url}
+          name={displayName}
+          size="lg"
+        />
+        <Text className="text-text-primary font-display-bold text-2xl flex-1">
+          {displayName}
+        </Text>
+      </View>
+
+      {/* Follow button + counts */}
+      {!isOwnProfile && (
+        <View className="flex-row items-center gap-3">
+          <AnimatedPressable
+            haptic="light"
+            onPress={() =>
+              myWallet &&
+              toggleFollow(myWallet, walletAddress, isFollowing ?? false)
+            }
+            disabled={isToggling}
+            style={{
+              paddingHorizontal: 20,
+              paddingVertical: 8,
+              borderRadius: 20,
+              backgroundColor: isFollowing ? colors.surface : colors.primary,
+              borderWidth: isFollowing ? 1 : 0,
+              borderColor: colors.border,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "600",
+                color: isFollowing ? colors.textPrimary : colors.background,
+              }}
+            >
+              {isToggling ? "..." : isFollowing ? "Following" : "Follow"}
+            </Text>
+          </AnimatedPressable>
+          <Text className="text-text-tertiary text-xs">
+            {followCounts?.followers ?? 0} Followers{" · "}
+            {followCounts?.following ?? 0} Following
+          </Text>
+        </View>
+      )}
 
       {/* Earnings card */}
       <Animated.View style={cardEntranceStyle}>

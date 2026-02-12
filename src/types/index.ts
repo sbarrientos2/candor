@@ -38,6 +38,28 @@ export interface Vouch {
   voucher?: User;
 }
 
+export interface Follow {
+  id: string;
+  follower_id: string;
+  follower_wallet: string;
+  following_id: string;
+  following_wallet: string;
+  created_at: string;
+}
+
+export interface Notification {
+  id: string;
+  recipient_wallet: string;
+  actor_wallet: string;
+  type: "vouch" | "follow";
+  photo_id: string | null;
+  amount_lamports: number | null;
+  read: boolean;
+  created_at: string;
+  // Joined
+  actor?: User;
+}
+
 export interface WalletState {
   publicKey: PublicKey | null;
   connected: boolean;
@@ -69,11 +91,13 @@ export type RootStackParamList = {
   MainTabs: undefined;
   PhotoDetail: { photoId: string };
   UserProfile: { walletAddress: string };
+  UserSearch: undefined;
 };
 
 export type TabParamList = {
   Camera: undefined;
   Feed: undefined;
+  Notifications: undefined;
   Profile: undefined;
 };
 

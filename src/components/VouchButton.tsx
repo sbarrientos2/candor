@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { View, Text, ActivityIndicator } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSequence,
+  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
@@ -29,9 +30,21 @@ export function VouchButton({
   hasVouched = false,
 }: VouchButtonProps) {
   const rotation = useSharedValue(0);
+  const scale = useSharedValue(1);
+  const prevHasVouched = useRef(hasVouched);
 
-  const wiggleStyle = useAnimatedStyle(() => ({
-    transform: [{ rotateZ: `${rotation.value}deg` }],
+  useEffect(() => {
+    if (hasVouched && !prevHasVouched.current) {
+      scale.value = withSequence(
+        withSpring(1.15, { damping: 8, stiffness: 150 }),
+        withSpring(1, { damping: 12, stiffness: 150 })
+      );
+    }
+    prevHasVouched.current = hasVouched;
+  }, [hasVouched]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotateZ: `${rotation.value}deg` }, { scale: scale.value }],
   }));
 
   const handlePress = () => {
@@ -41,7 +54,7 @@ export function VouchButton({
     rotation.value = withSequence(
       withTiming(-3, { duration: 50 }),
       withTiming(3, { duration: 50 }),
-      withTiming(0, { duration: 50 })
+      withSpring(0, { damping: 14, stiffness: 120 })
     );
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -49,7 +62,7 @@ export function VouchButton({
   };
 
   return (
-    <Animated.View style={wiggleStyle}>
+    <Animated.View style={animatedStyle}>
       <AnimatedPressable
         haptic="none"
         scaleValue={0.92}
