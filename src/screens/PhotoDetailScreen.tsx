@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,27 +6,31 @@ import {
   Linking,
   Dimensions,
   Alert,
+  Pressable,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Animated, {
-  Easing,
   useSharedValue,
   useAnimatedStyle,
   withDelay,
   withTiming,
+  withSpring,
 } from "react-native-reanimated";
 import { usePhotoDetail, usePhotoVouches } from "../hooks/usePhotos";
 import { useVouch } from "../hooks/useVouch";
 import { useWallet } from "../hooks/useWallet";
 import { VerificationBadge } from "../components/VerificationBadge";
 import { VouchButton } from "../components/VouchButton";
+import { Avatar } from "../components/ui/Avatar";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { BoostModal } from "../components/BoostModal";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 import { SectionHeader } from "../components/ui/SectionHeader";
+import { VouchSuccessToast } from "../components/ui/VouchSuccessToast";
 import {
   truncateAddress,
   timeAgo,
@@ -34,6 +38,7 @@ import {
 } from "../utils/format";
 import { getExplorerUrl } from "../services/solana";
 import { RootStackParamList, Vouch } from "../types";
+import { useDoubleTap } from "../hooks/useDoubleTap";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -46,9 +51,17 @@ export function PhotoDetailScreen() {
 
   const { data: photo, isLoading } = usePhotoDetail(photoId);
   const { data: vouches } = usePhotoVouches(photoId);
-  const { vouch, isVouching, defaultAmount } = useVouch();
+  const { vouch, isVouching, error, clearError, defaultAmount, lastSuccess, clearSuccess } = useVouch();
   const { walletAddress } = useWallet();
   const [boostModalVisible, setBoostModalVisible] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+  useEffect(() => {
+    if (lastSuccess) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowSuccessToast(true);
+    }
+  }, [lastSuccess]);
 
   // Content entrance animation
   const contentOpacity = useSharedValue(0);
@@ -58,14 +71,11 @@ export function PhotoDetailScreen() {
     if (photo) {
       contentOpacity.value = withDelay(
         150,
-        withTiming(1, { duration: 400 })
+        withTiming(1, { duration: 350 })
       );
       contentTranslateY.value = withDelay(
         150,
-        withTiming(0, {
-          duration: 400,
-          easing: Easing.out(Easing.cubic),
-        })
+        withSpring(0, { damping: 20, stiffness: 130 })
       );
     }
   }, [photo]);
@@ -74,6 +84,43 @@ export function PhotoDetailScreen() {
     opacity: contentOpacity.value,
     transform: [{ translateY: contentTranslateY.value }],
   }));
+
+  useEffect(() => {
+    if (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Vouch Failed", error);
+      clearError();
+    }
+  }, [error, clearError]);
+
+  const hasVouched = vouches?.some((v) => v.voucher_wallet === walletAddress);
+  const isOwnPhoto = walletAddress === photo?.creator_wallet;
+
+  const handleDoubleTapVouch = useCallback(() => {
+    if (!photo || isOwnPhoto || hasVouched || isVouching) return;
+    Alert.alert(
+      "Vouch for this photo?",
+      `This will send ${formatSOL(defaultAmount)} to the creator.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Vouch",
+          onPress: async () => {
+            await vouch(
+              photo.id,
+              photo.creator_wallet,
+              photo.image_hash,
+              defaultAmount
+            );
+          },
+        },
+      ]
+    );
+  }, [photo, isOwnPhoto, hasVouched, isVouching, defaultAmount, vouch]);
+
+  const { handlePress: handleImagePress } = useDoubleTap({
+    onDoubleTap: handleDoubleTapVouch,
+  });
 
   if (isLoading || !photo) {
     return (
@@ -101,9 +148,6 @@ export function PhotoDetailScreen() {
       </View>
     );
   }
-
-  const hasVouched = vouches?.some((v) => v.voucher_wallet === walletAddress);
-  const isOwnPhoto = walletAddress === photo.creator_wallet;
 
   const handleVouch = () => {
     Alert.alert(
@@ -144,13 +188,15 @@ export function PhotoDetailScreen() {
       className="flex-1"
       showsVerticalScrollIndicator={false}
     >
-      {/* Full photo */}
-      <Image
-        source={{ uri: photo.image_url }}
-        style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH }}
-        contentFit="cover"
-        transition={200}
-      />
+      {/* Full photo — double-tap to vouch */}
+      <Pressable onPress={handleImagePress}>
+        <Image
+          source={{ uri: photo.image_url }}
+          style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH }}
+          contentFit="cover"
+          transition={200}
+        />
+      </Pressable>
 
       <Animated.View style={contentStyle} className="px-4 py-5 gap-5">
         {/* Creator info + verification */}
@@ -164,6 +210,13 @@ export function PhotoDetailScreen() {
             }
             className="flex-row items-center"
           >
+            <View style={{ marginRight: 8 }}>
+              <Avatar
+                uri={photo.creator?.avatar_url}
+                name={photo.creator?.display_name || truncateAddress(photo.creator_wallet)}
+                size="sm"
+              />
+            </View>
             <Text className="text-text-primary font-display-semibold text-base">
               {photo.creator?.display_name ||
                 truncateAddress(photo.creator_wallet)}
@@ -312,6 +365,15 @@ export function PhotoDetailScreen() {
         photo.creator?.display_name ||
         truncateAddress(photo.creator_wallet)
       }
+    />
+
+    <VouchSuccessToast
+      visible={showSuccessToast}
+      amount={lastSuccess?.amount ?? 0}
+      onDismiss={() => {
+        setShowSuccessToast(false);
+        clearSuccess();
+      }}
     />
     </View>
   );

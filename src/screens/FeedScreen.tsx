@@ -1,5 +1,6 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, FlatList, RefreshControl, Dimensions, Alert } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -7,7 +8,8 @@ import { PhotoCard } from "../components/PhotoCard";
 import { FeedMap } from "../components/FeedMap";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
-import { useFeedPhotos, useRefreshFeed, useUserVouchedPhotoIds } from "../hooks/usePhotos";
+import { VouchSuccessToast } from "../components/ui/VouchSuccessToast";
+import { useFeedPhotos, useFollowingFeedPhotos, useRefreshFeed, useUserVouchedPhotoIds } from "../hooks/usePhotos";
 import { useVouch } from "../hooks/useVouch";
 import { useWallet } from "../hooks/useWallet";
 import { Photo, RootStackParamList } from "../types";
@@ -45,19 +47,40 @@ function FeedSkeleton() {
   );
 }
 
-type FeedView = "list" | "map";
+type FeedView = "following" | "explore" | "map";
 
 export function FeedScreen() {
   const insets = useSafeAreaInsets();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { data: photos, isLoading, isRefetching } = useFeedPhotos();
-  const refreshFeed = useRefreshFeed();
-  const { vouch, isVouching, defaultAmount } = useVouch();
+  const { data: explorePhotos, isLoading: isLoadingExplore, isRefetching: isRefetchingExplore } = useFeedPhotos();
   const { walletAddress } = useWallet();
+  const { data: followingPhotos, isLoading: isLoadingFollowing, isRefetching: isRefetchingFollowing } = useFollowingFeedPhotos(walletAddress);
+  const refreshFeed = useRefreshFeed();
+  const { vouch, isVouching, error, clearError, defaultAmount, lastSuccess, clearSuccess } = useVouch();
   const { data: vouchedPhotoIds } = useUserVouchedPhotoIds(walletAddress);
   const [vouchingPhotoId, setVouchingPhotoId] = useState<string | null>(null);
-  const [feedView, setFeedView] = useState<FeedView>("list");
+  const [feedView, setFeedView] = useState<FeedView>("explore");
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+  const activePhotos = feedView === "following" ? followingPhotos : explorePhotos;
+  const activeIsLoading = feedView === "following" ? isLoadingFollowing : isLoadingExplore;
+  const activeIsRefetching = feedView === "following" ? isRefetchingFollowing : isRefetchingExplore;
+
+  useEffect(() => {
+    if (lastSuccess) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowSuccessToast(true);
+    }
+  }, [lastSuccess]);
+
+  useEffect(() => {
+    if (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Vouch Failed", error);
+      clearError();
+    }
+  }, [error, clearError]);
 
   const handleVouch = useCallback(
     (photo: Photo) => {
@@ -97,13 +120,14 @@ export function FeedScreen() {
         onVouch={() => handleVouch(item)}
         isVouching={vouchingPhotoId === item.id && isVouching}
         hasVouched={vouchedPhotoIds?.has(item.id) ?? false}
+        isOwnPhoto={item.creator_wallet === walletAddress}
         vouchAmount={defaultAmount}
       />
     ),
-    [navigation, handleVouch, vouchingPhotoId, isVouching, defaultAmount, vouchedPhotoIds]
+    [navigation, handleVouch, vouchingPhotoId, isVouching, defaultAmount, vouchedPhotoIds, walletAddress]
   );
 
-  if (isLoading) {
+  if (activeIsLoading) {
     return (
       <View
         className="flex-1 bg-background"
@@ -114,75 +138,74 @@ export function FeedScreen() {
     );
   }
 
+  const feedChips: { key: FeedView; label: string }[] = [
+    { key: "following", label: "Following" },
+    { key: "explore", label: "Explore" },
+    { key: "map", label: "Map" },
+  ];
+
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       {/* View toggle */}
-      <View className="flex-row items-center justify-end px-4 py-2">
+      <View className="flex-row items-center justify-between px-4 py-2">
+        <AnimatedPressable
+          haptic="light"
+          onPress={() => navigation.navigate("UserSearch")}
+          style={{
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+          }}
+        >
+          <Text style={{ fontSize: 18, color: colors.textTertiary }}>
+            search
+          </Text>
+        </AnimatedPressable>
         <View
           className="flex-row rounded-full overflow-hidden"
           style={{ backgroundColor: colors.surface }}
         >
-          <AnimatedPressable
-            haptic="light"
-            scaleValue={1}
-            onPress={() => setFeedView("list")}
-            style={{
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              backgroundColor:
-                feedView === "list" ? colors.surfaceRaised : "transparent",
-              borderRadius: 20,
-            }}
-          >
-            <Text
+          {feedChips.map((chip) => (
+            <AnimatedPressable
+              key={chip.key}
+              haptic="light"
+              scaleValue={1}
+              onPress={() => setFeedView(chip.key)}
               style={{
-                fontSize: 12,
-                fontWeight: "600",
-                color:
-                  feedView === "list" ? colors.textPrimary : colors.textTertiary,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                backgroundColor:
+                  feedView === chip.key ? colors.surfaceRaised : "transparent",
+                borderRadius: 20,
               }}
             >
-              {"☰ Feed"}
-            </Text>
-          </AnimatedPressable>
-          <AnimatedPressable
-            haptic="light"
-            scaleValue={1}
-            onPress={() => setFeedView("map")}
-            style={{
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              backgroundColor:
-                feedView === "map" ? colors.surfaceRaised : "transparent",
-              borderRadius: 20,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 12,
-                fontWeight: "600",
-                color:
-                  feedView === "map" ? colors.textPrimary : colors.textTertiary,
-              }}
-            >
-              {"◎ Map"}
-            </Text>
-          </AnimatedPressable>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "600",
+                  color:
+                    feedView === chip.key ? colors.textPrimary : colors.textTertiary,
+                }}
+              >
+                {chip.label}
+              </Text>
+            </AnimatedPressable>
+          ))}
         </View>
       </View>
 
       {/* Content */}
       {feedView === "map" ? (
-        <FeedMap photos={photos ?? []} />
+        <FeedMap photos={explorePhotos ?? []} />
       ) : (
         <FlatList
-          data={photos}
+          data={activePhotos}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
+          extraData={vouchedPhotoIds}
           contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 24 }}
           refreshControl={
             <RefreshControl
-              refreshing={isRefetching}
+              refreshing={activeIsRefetching}
               onRefresh={refreshFeed}
               tintColor={colors.primary}
               colors={[colors.primary]}
@@ -190,18 +213,38 @@ export function FeedScreen() {
             />
           }
           ListEmptyComponent={
-            <View className="flex-1 items-center justify-center px-8 pt-32 gap-4">
-              <Text className="text-text-primary text-lg font-display-semibold text-center">
-                No photos yet
-              </Text>
-              <Text className="text-text-tertiary text-sm text-center leading-5">
-                Be the first to capture a verified moment.
-              </Text>
-            </View>
+            feedView === "following" ? (
+              <View className="flex-1 items-center justify-center px-8 pt-32 gap-4">
+                <Text className="text-text-primary text-lg font-display-semibold text-center">
+                  No photos from followed users
+                </Text>
+                <Text className="text-text-tertiary text-sm text-center leading-5">
+                  Follow some creators to see their photos here.
+                </Text>
+              </View>
+            ) : (
+              <View className="flex-1 items-center justify-center px-8 pt-32 gap-4">
+                <Text className="text-text-primary text-lg font-display-semibold text-center">
+                  No photos yet
+                </Text>
+                <Text className="text-text-tertiary text-sm text-center leading-5">
+                  Be the first to capture a verified moment.
+                </Text>
+              </View>
+            )
           }
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      <VouchSuccessToast
+        visible={showSuccessToast}
+        amount={lastSuccess?.amount ?? 0}
+        onDismiss={() => {
+          setShowSuccessToast(false);
+          clearSuccess();
+        }}
+      />
     </View>
   );
 }

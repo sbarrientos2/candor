@@ -1,20 +1,22 @@
-import React, { useEffect } from "react";
-import { View, Text, Dimensions } from "react-native";
+import React, { useEffect, useCallback } from "react";
+import { View, Text, Dimensions, Pressable } from "react-native";
 import { Image } from "expo-image";
 import Animated, {
-  Easing,
   useSharedValue,
   useAnimatedStyle,
   withDelay,
   withTiming,
+  withSpring,
 } from "react-native-reanimated";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { VerificationBadge } from "./VerificationBadge";
 import { VouchButton } from "./VouchButton";
+import { Avatar } from "./ui/Avatar";
 import { AnimatedPressable } from "./ui/AnimatedPressable";
 import { Photo, RootStackParamList } from "../types";
 import { timeAgo, truncateAddress, formatSOL } from "../utils/format";
+import { useDoubleTap } from "../hooks/useDoubleTap";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_PADDING = 16;
@@ -28,6 +30,7 @@ interface PhotoCardProps {
   onVouch: () => void;
   isVouching?: boolean;
   hasVouched?: boolean;
+  isOwnPhoto?: boolean;
   vouchAmount?: number;
 }
 
@@ -38,6 +41,7 @@ export function PhotoCard({
   onVouch,
   isVouching = false,
   hasVouched = false,
+  isOwnPhoto = false,
   vouchAmount = 5_000_000,
 }: PhotoCardProps) {
   const navigation =
@@ -53,9 +57,9 @@ export function PhotoCard({
     const delay = index * 60;
     translateY.value = withDelay(
       delay,
-      withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) })
+      withSpring(0, { damping: 16, stiffness: 110 })
     );
-    opacity.value = withDelay(delay, withTiming(1, { duration: 400 }));
+    opacity.value = withDelay(delay, withTiming(1, { duration: 350 }));
   }, []);
 
   const entranceStyle = useAnimatedStyle(() => ({
@@ -63,21 +67,33 @@ export function PhotoCard({
     opacity: opacity.value,
   }));
 
+  const handleDoubleTapVouch = useCallback(() => {
+    if (isOwnPhoto || hasVouched || isVouching) return;
+    onVouch();
+  }, [isOwnPhoto, hasVouched, isVouching, onVouch]);
+
+  const { handlePress: handleImagePress } = useDoubleTap({
+    onDoubleTap: handleDoubleTapVouch,
+    onSingleTap: onPress,
+  });
+
   return (
     <Animated.View style={entranceStyle} className="mb-4">
       <AnimatedPressable haptic="light" scaleValue={0.98} onPress={onPress}>
         <View className="bg-surface rounded-2xl p-4 gap-3">
-          {/* Image */}
-          <View className="rounded-xl overflow-hidden">
-            <Image
-              source={{ uri: photo.image_url }}
-              style={{ width: IMAGE_WIDTH, height: IMAGE_WIDTH * 0.75 }}
-              contentFit="cover"
-              transition={200}
-            />
-          </View>
+          {/* Image — double-tap to vouch */}
+          <Pressable onPress={handleImagePress}>
+            <View className="rounded-xl overflow-hidden">
+              <Image
+                source={{ uri: photo.image_url }}
+                style={{ width: IMAGE_WIDTH, height: IMAGE_WIDTH * 0.75 }}
+                contentFit="cover"
+                transition={200}
+              />
+            </View>
+          </Pressable>
 
-          {/* Creator row: name + badge + timestamp */}
+          {/* Creator row: avatar + name + badge + timestamp */}
           <View className="flex-row items-center">
             <AnimatedPressable
               haptic="light"
@@ -88,6 +104,13 @@ export function PhotoCard({
               }
               className="flex-row items-center"
             >
+              <View style={{ marginRight: 6 }}>
+                <Avatar
+                  uri={photo.creator?.avatar_url}
+                  name={creatorName}
+                  size="sm"
+                />
+              </View>
               <Text className="text-text-primary font-display-semibold text-sm">
                 {creatorName}
               </Text>
@@ -112,13 +135,15 @@ export function PhotoCard({
 
           {/* Actions row: vouch button + earnings */}
           <View className="flex-row items-center justify-between">
-            <VouchButton
-              amountLamports={vouchAmount}
-              vouchCount={photo.vouch_count}
-              onPress={onVouch}
-              isLoading={isVouching}
-              hasVouched={hasVouched}
-            />
+            {!isOwnPhoto && (
+              <VouchButton
+                amountLamports={vouchAmount}
+                vouchCount={photo.vouch_count}
+                onPress={onVouch}
+                isLoading={isVouching}
+                hasVouched={hasVouched}
+              />
+            )}
             {photo.total_earned_lamports > 0 && (
               <Text className="text-primary text-xs font-semibold">
                 {formatSOL(photo.total_earned_lamports)} earned
