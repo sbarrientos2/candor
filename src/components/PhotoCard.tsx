@@ -19,9 +19,8 @@ import { timeAgo, truncateAddress, formatSOL } from "../utils/format";
 import { useDoubleTap } from "../hooks/useDoubleTap";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_PADDING = 16;
 const SCREEN_PADDING = 16;
-const IMAGE_WIDTH = SCREEN_WIDTH - SCREEN_PADDING * 2 - CARD_PADDING * 2;
+const IMAGE_WIDTH = SCREEN_WIDTH - SCREEN_PADDING * 2;
 
 interface PhotoCardProps {
   photo: Photo;
@@ -80,75 +79,76 @@ export function PhotoCard({
   return (
     <Animated.View style={entranceStyle} className="mb-4">
       <AnimatedPressable haptic="light" scaleValue={0.98} onPress={onPress}>
-        <View className="bg-surface rounded-2xl p-4 gap-3">
-          {/* Image — double-tap to vouch */}
+        <View className="bg-surface rounded-2xl overflow-hidden">
+          {/* Photo — full card width */}
           <Pressable onPress={handleImagePress}>
-            <View className="rounded-xl overflow-hidden">
-              <Image
-                source={{ uri: photo.image_url }}
-                style={{ width: IMAGE_WIDTH, height: IMAGE_WIDTH * 0.75 }}
-                contentFit="cover"
-                transition={200}
-              />
-            </View>
+            <Image
+              source={{ uri: photo.image_url }}
+              style={{ width: IMAGE_WIDTH, aspectRatio: 4 / 5 }}
+              contentFit="cover"
+              transition={200}
+            />
           </Pressable>
 
-          {/* Creator row: avatar + name + badge + timestamp */}
-          <View className="flex-row items-center">
-            <AnimatedPressable
-              haptic="light"
-              onPress={() =>
-                navigation.navigate("UserProfile", {
-                  walletAddress: photo.creator_wallet,
-                })
-              }
-              className="flex-row items-center"
-            >
-              <View style={{ marginRight: 6 }}>
-                <Avatar
-                  uri={photo.creator?.avatar_url}
-                  name={creatorName}
-                  size="sm"
-                />
-              </View>
-              <Text className="text-text-primary font-display-semibold text-sm">
-                {creatorName}
-              </Text>
-              {photo.verification_tx && (
-                <View className="ml-1.5">
-                  <VerificationBadge size="sm" />
+          {/* Metadata below photo */}
+          <View className="px-4 pt-3 pb-4 gap-2.5">
+            {/* Creator row: avatar + name + badge + timestamp */}
+            <View className="flex-row items-center">
+              <AnimatedPressable
+                haptic="light"
+                onPress={() =>
+                  navigation.navigate("UserProfile", {
+                    walletAddress: photo.creator_wallet,
+                  })
+                }
+                className="flex-row items-center"
+              >
+                <View style={{ marginRight: 6 }}>
+                  <Avatar
+                    uri={photo.creator?.avatar_url}
+                    name={creatorName}
+                    size="sm"
+                  />
                 </View>
-              )}
-            </AnimatedPressable>
-            <View className="flex-1" />
-            <Text className="text-text-tertiary text-xs">
-              {timeAgo(photo.created_at)}
-            </Text>
-          </View>
+                <Text className="text-text-primary font-display-semibold text-sm">
+                  {creatorName}
+                </Text>
+                {photo.verification_tx && (
+                  <View className="ml-1.5">
+                    <VerificationBadge size="sm" />
+                  </View>
+                )}
+              </AnimatedPressable>
+              <View className="flex-1" />
+              <Text className="text-text-tertiary text-xs">
+                {timeAgo(photo.created_at)}
+              </Text>
+            </View>
 
-          {/* Caption */}
-          {photo.caption && (
-            <Text className="text-text-secondary text-sm" numberOfLines={2}>
-              {photo.caption}
-            </Text>
-          )}
-
-          {/* Actions row: vouch button + earnings */}
-          <View className="flex-row items-center justify-between">
-            {!isOwnPhoto && (
-              <VouchButton
-                amountLamports={vouchAmount}
-                vouchCount={photo.vouch_count}
-                onPress={onVouch}
-                isLoading={isVouching}
-                hasVouched={hasVouched}
-              />
-            )}
-            {photo.total_earned_lamports > 0 && (
-              <Text className="text-primary text-xs font-semibold">
-                {formatSOL(photo.total_earned_lamports)} earned
+            {/* Caption */}
+            {photo.caption && (
+              <Text className="text-text-secondary text-sm" numberOfLines={2}>
+                {photo.caption}
               </Text>
             )}
+
+            {/* Actions row: vouch button + earnings */}
+            <View className="flex-row items-center justify-between">
+              {!isOwnPhoto && (
+                <VouchButton
+                  amountLamports={vouchAmount}
+                  vouchCount={photo.vouch_count}
+                  onPress={onVouch}
+                  isLoading={isVouching}
+                  hasVouched={hasVouched}
+                />
+              )}
+              {photo.total_earned_lamports > 0 && (
+                <Text className="text-primary text-xs font-semibold">
+                  {formatSOL(photo.total_earned_lamports)} earned
+                </Text>
+              )}
+            </View>
           </View>
         </View>
       </AnimatedPressable>

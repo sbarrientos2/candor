@@ -18,22 +18,24 @@ import { colors } from "../theme/colors";
 import { Ionicons } from "@expo/vector-icons";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const IMAGE_SKELETON_WIDTH = SCREEN_WIDTH - 64; // 16px screen + 16px card padding on each side
+const SKELETON_WIDTH = SCREEN_WIDTH - 32;
 
 function FeedSkeletonCard() {
   return (
-    <View className="bg-surface rounded-2xl p-4 gap-3 mb-4">
+    <View className="bg-surface rounded-2xl overflow-hidden mb-4">
       <SkeletonLoader
-        width={IMAGE_SKELETON_WIDTH}
-        height={IMAGE_SKELETON_WIDTH * 0.75}
-        borderRadius={12}
+        width={SKELETON_WIDTH}
+        height={SKELETON_WIDTH * 1.25}
+        borderRadius={0}
       />
-      <View className="flex-row items-center justify-between">
-        <SkeletonLoader width={120} height={16} borderRadius={8} />
-        <SkeletonLoader width={40} height={12} borderRadius={6} />
+      <View className="px-4 pt-3 pb-4 gap-2.5">
+        <View className="flex-row items-center justify-between">
+          <SkeletonLoader width={120} height={16} borderRadius={8} />
+          <SkeletonLoader width={40} height={12} borderRadius={6} />
+        </View>
+        <SkeletonLoader width="80%" height={14} borderRadius={8} />
+        <SkeletonLoader width={100} height={32} borderRadius={16} />
       </View>
-      <SkeletonLoader width="80%" height={14} borderRadius={8} />
-      <SkeletonLoader width={100} height={32} borderRadius={16} />
     </View>
   );
 }
