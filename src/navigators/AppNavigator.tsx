@@ -1,9 +1,15 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { NavigationContainer, DarkTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../stores/authStore";
 import { useWallet } from "../hooks/useWallet";
 import { useUnreadCount } from "../hooks/useNotifications";
@@ -33,41 +39,57 @@ const CandorDarkTheme = {
   },
 };
 
-function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    Camera: "◎",
-    Feed: "☰",
-    Notifications: "♡",
-    Profile: "◉",
+function TabIcon({ routeName, focused }: { routeName: string; focused: boolean }) {
+  const scale = useSharedValue(focused ? 1 : 0.85);
+
+  useEffect(() => {
+    scale.value = withSpring(focused ? 1 : 0.85, { damping: 15, stiffness: 150 });
+  }, [focused]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const iconMap: Record<string, { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap }> = {
+    Camera: { active: "camera", inactive: "camera-outline" },
+    Feed: { active: "grid", inactive: "grid-outline" },
+    Notifications: { active: "heart", inactive: "heart-outline" },
+    Profile: { active: "person-circle", inactive: "person-circle-outline" },
   };
+
+  const icons = iconMap[routeName] || { active: "ellipse", inactive: "ellipse-outline" };
+
   return (
-    <View className="items-center">
-      <Text
-        style={{
-          fontSize: 20,
-          color: focused ? colors.primary : colors.textTertiary,
-        }}
-      >
-        {icons[label] || "•"}
-      </Text>
-    </View>
+    <Animated.View style={animatedStyle}>
+      <Ionicons
+        name={focused ? icons.active : icons.inactive}
+        size={22}
+        color={focused ? colors.primary : colors.textTertiary}
+      />
+    </Animated.View>
   );
 }
 
 function NotificationsTabIcon({ focused }: { focused: boolean }) {
   const { walletAddress } = useWallet();
   const { data: unreadCount } = useUnreadCount(walletAddress);
+  const scale = useSharedValue(focused ? 1 : 0.85);
+
+  useEffect(() => {
+    scale.value = withSpring(focused ? 1 : 0.85, { damping: 15, stiffness: 150 });
+  }, [focused]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   return (
-    <View className="items-center">
-      <Text
-        style={{
-          fontSize: 20,
-          color: focused ? colors.primary : colors.textTertiary,
-        }}
-      >
-        ♡
-      </Text>
+    <Animated.View style={animatedStyle}>
+      <Ionicons
+        name={focused ? "heart" : "heart-outline"}
+        size={22}
+        color={focused ? colors.primary : colors.textTertiary}
+      />
       {(unreadCount ?? 0) > 0 && (
         <View
           style={{
@@ -81,7 +103,7 @@ function NotificationsTabIcon({ focused }: { focused: boolean }) {
           }}
         />
       )}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -93,8 +115,9 @@ function MainTabs() {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          height: 60,
-          paddingBottom: 8,
+          borderTopWidth: 0.5,
+          height: 72,
+          paddingBottom: 12,
           paddingTop: 8,
         },
         tabBarActiveTintColor: colors.primary,
@@ -103,7 +126,7 @@ function MainTabs() {
           route.name === "Notifications" ? (
             <NotificationsTabIcon focused={focused} />
           ) : (
-            <TabIcon label={route.name} focused={focused} />
+            <TabIcon routeName={route.name} focused={focused} />
           ),
         tabBarLabelStyle: {
           fontSize: 11,
