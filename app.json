@@ -33,9 +33,6 @@
         "backgroundColor": "#0A0A0A"
       },
       "newArchEnabled": true,
-      "autolinking": {
-        "exclude": ["react-native-worklets"]
-      },
       "package": "com.candor.app",
       "config": {
         "googleMaps": {
