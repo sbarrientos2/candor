@@ -22,6 +22,7 @@ import { supabase } from "../services/supabase";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { truncateAddress } from "../utils/format";
 import { colors } from "../theme/colors";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -37,25 +38,25 @@ interface Slide {
 const SLIDES: Slide[] = [
   {
     id: "truth",
-    icon: "◈",
+    icon: "shield-check",
     title: "Truth in every pixel",
     body: "In a world of AI fakes and manipulated media, Candor makes every photo cryptographically verifiable on Solana. If it's on Candor, it's real.",
   },
   {
     id: "sealed",
-    icon: "⬡",
+    icon: "camera-lock",
     title: "Sealed at capture",
     body: "The moment you tap the shutter, your photo is hashed and recorded on-chain. No filters, no edits, no tampering possible after the fact.",
   },
   {
     id: "location",
-    icon: "◎",
+    icon: "map-marker-radius",
     title: "Your location, your choice",
     body: "Toggle GPS to prove where you were. Coordinates are fuzzed to ~100m — enough to verify the area, never your exact spot. Off by default.",
   },
   {
     id: "vouch",
-    icon: "◇",
+    icon: "hand-coin",
     title: "Vouch with real SOL",
     body: "Love a photo? Vouch for it. Real SOL goes directly to the creator — no middlemen, no algorithms. Just people backing truth.",
   },
@@ -108,12 +109,22 @@ function WelcomeCarousel({ onComplete }: { onComplete: () => void }) {
       style={{ width: SCREEN_WIDTH }}
       className="px-8 justify-center items-center"
     >
-      {/* Icon */}
-      <Text
-        style={{ fontSize: 48, color: colors.primary, marginBottom: 24 }}
-      >
-        {item.icon}
-      </Text>
+      {/* Icon — vector icon with gold circle background */}
+      <View style={{
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: "rgba(232,168,56,0.1)",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 24,
+      }}>
+        <MaterialCommunityIcons
+          name={item.icon as any}
+          size={40}
+          color={colors.primary}
+        />
+      </View>
 
       {/* Title */}
       <Text className="text-text-primary font-display-bold text-2xl text-center mb-4">
