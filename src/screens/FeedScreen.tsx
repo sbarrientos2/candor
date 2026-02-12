@@ -173,8 +173,15 @@ export function FeedScreen() {
                 paddingHorizontal: 14,
                 paddingVertical: 8,
                 backgroundColor:
-                  feedView === chip.key ? colors.surfaceRaised : "transparent",
+                  feedView === chip.key
+                    ? "rgba(232,168,56,0.12)"
+                    : "transparent",
                 borderRadius: 20,
+                borderWidth: 1,
+                borderColor:
+                  feedView === chip.key
+                    ? "rgba(232,168,56,0.3)"
+                    : "transparent",
               }}
             >
               <Text
@@ -182,7 +189,7 @@ export function FeedScreen() {
                   fontSize: 12,
                   fontWeight: "600",
                   color:
-                    feedView === chip.key ? colors.textPrimary : colors.textTertiary,
+                    feedView === chip.key ? colors.primary : colors.textTertiary,
                 }}
               >
                 {chip.label}
