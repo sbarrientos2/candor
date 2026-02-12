@@ -15,6 +15,7 @@ import { useWallet } from "../hooks/useWallet";
 import { Photo, RootStackParamList } from "../types";
 import { formatSOL } from "../utils/format";
 import { colors } from "../theme/colors";
+import { Ionicons } from "@expo/vector-icons";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const IMAGE_SKELETON_WIDTH = SCREEN_WIDTH - 64; // 16px screen + 16px card padding on each side
@@ -151,14 +152,12 @@ export function FeedScreen() {
         <AnimatedPressable
           haptic="light"
           onPress={() => navigation.navigate("UserSearch")}
-          style={{
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-          }}
+          className="flex-1 mr-3"
         >
-          <Text style={{ fontSize: 18, color: colors.textTertiary }}>
-            search
-          </Text>
+          <View className="flex-row items-center bg-surface rounded-xl px-3.5 py-2.5 gap-2">
+            <Ionicons name="search" size={16} color={colors.textTertiary} />
+            <Text className="text-text-tertiary text-sm">Search users...</Text>
+          </View>
         </AnimatedPressable>
         <View
           className="flex-row rounded-full overflow-hidden"
