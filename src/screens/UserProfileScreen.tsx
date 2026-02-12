@@ -159,45 +159,58 @@ export function UserProfileScreen() {
 
       {/* Earnings card */}
       <Animated.View style={cardEntranceStyle}>
-        <View className="bg-surface rounded-2xl p-5 gap-4">
-          {/* Main earnings */}
-          <View>
-            <Text className="text-text-tertiary text-xs uppercase tracking-widest mb-1">
-              Total Earned
-            </Text>
-            <View className="flex-row items-baseline gap-2">
-              <Text className="text-primary font-display-bold text-3xl">
-                {formatSOL(earnings?.totalEarnedLamports ?? 0)}
+        <View style={{
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: "rgba(232,168,56,0.2)",
+        }}>
+          <View className="bg-surface rounded-2xl p-5 gap-4">
+            {/* Main earnings */}
+            <View>
+              <Text className="text-text-tertiary text-xs uppercase tracking-widest mb-1">
+                Total Earned
               </Text>
-              {solPrice != null && solPrice > 0 && (
-                <Text className="text-text-tertiary text-sm">
-                  {formatUSD(earnings?.totalEarnedLamports ?? 0, solPrice)}
+              <View className="flex-row items-baseline gap-2">
+                <Text style={{
+                  fontSize: 36,
+                  fontFamily: "SpaceGrotesk_700Bold",
+                  color: colors.primary,
+                }}>
+                  {formatSOL(earnings?.totalEarnedLamports ?? 0)}
                 </Text>
-              )}
+                <Text className="text-primary text-lg font-display-semibold">
+                  SOL
+                </Text>
+                {solPrice != null && solPrice > 0 && (
+                  <Text className="text-text-tertiary text-sm">
+                    {formatUSD(earnings?.totalEarnedLamports ?? 0, solPrice)}
+                  </Text>
+                )}
+              </View>
             </View>
-          </View>
 
-          {/* Divider */}
-          <View className="border-b border-border" />
+            {/* Divider */}
+            <View className="border-b border-border" />
 
-          {/* Stats row */}
-          <View className="flex-row">
-            <View className="flex-1">
-              <Text className="text-text-primary font-display-semibold text-xl">
-                {earnings?.totalVouches ?? 0}
-              </Text>
-              <Text className="text-text-tertiary text-xs mt-0.5">
-                Vouches received
-              </Text>
-            </View>
-            <View className="border-l border-border mx-4" />
-            <View className="flex-1">
-              <Text className="text-text-primary font-display-semibold text-xl">
-                {earnings?.photoCount ?? 0}
-              </Text>
-              <Text className="text-text-tertiary text-xs mt-0.5">
-                Photos verified
-              </Text>
+            {/* Stats row */}
+            <View className="flex-row">
+              <View className="flex-1">
+                <Text className="text-text-primary font-display-semibold text-xl">
+                  {earnings?.totalVouches ?? 0}
+                </Text>
+                <Text className="text-text-tertiary text-xs mt-0.5">
+                  Vouches received
+                </Text>
+              </View>
+              <View className="border-l border-border mx-4" />
+              <View className="flex-1">
+                <Text className="text-text-primary font-display-semibold text-xl">
+                  {earnings?.photoCount ?? 0}
+                </Text>
+                <Text className="text-text-tertiary text-xs mt-0.5">
+                  Photos verified
+                </Text>
+              </View>
             </View>
           </View>
         </View>
