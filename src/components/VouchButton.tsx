@@ -11,6 +11,7 @@ import * as Haptics from "expo-haptics";
 import { AnimatedPressable } from "./ui/AnimatedPressable";
 import { formatSOL } from "../utils/format";
 import { colors } from "../theme/colors";
+import { subtleGoldGlow } from "../theme/shadows";
 
 interface VouchButtonProps {
   amountLamports: number;
@@ -75,7 +76,10 @@ export function VouchButton({
               ? "border border-primary/40"
               : "bg-primary"
           }`}
-          style={hasVouched ? { backgroundColor: "rgba(232,168,56,0.1)" } : undefined}
+          style={[
+            hasVouched ? { backgroundColor: "rgba(232,168,56,0.1)" } : undefined,
+            !hasVouched ? subtleGoldGlow : undefined,
+          ]}
         >
           {isLoading ? (
             <ActivityIndicator

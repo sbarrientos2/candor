@@ -23,6 +23,7 @@ import { supabase } from "../services/supabase";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { truncateAddress } from "../utils/format";
 import { colors } from "../theme/colors";
+import { goldGlow } from "../theme/shadows";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -196,6 +197,7 @@ function WelcomeCarousel({ onComplete }: { onComplete: () => void }) {
             haptic="medium"
             onPress={handleNext}
             className="bg-primary rounded-2xl py-4 items-center"
+            style={goldGlow}
           >
             <Text className="text-background font-display-semibold text-base">
               {isLastSlide ? "Get Started" : "Next"}
@@ -405,6 +407,7 @@ function SetupScreen() {
             haptic="medium"
             onPress={handleConnect}
             className="bg-primary rounded-2xl py-4 items-center"
+            style={goldGlow}
           >
             <Text className="text-background font-display-semibold text-base">
               Connect Wallet
@@ -459,9 +462,10 @@ function SetupScreen() {
             onPress={handleContinue}
             disabled={isSaving || !!nameError || isChecking}
             className="bg-primary rounded-2xl py-4 items-center"
-            style={
-              isSaving || nameError || isChecking ? { opacity: 0.5 } : undefined
-            }
+            style={[
+              goldGlow,
+              (isSaving || nameError || isChecking) ? { opacity: 0.5 } : undefined,
+            ]}
           >
             <Text className="text-background font-display-semibold text-lg">
               {isSaving ? "Saving..." : "Start Capturing"}
