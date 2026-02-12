@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { View, Text, FlatList, RefreshControl } from "react-native";
+import { View, Text, SectionList, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -21,6 +21,38 @@ export function NotificationsScreen() {
   const { data: notifications, isLoading, isRefetching } = useNotifications(walletAddress);
   const { markRead } = useMarkNotificationsRead();
   const queryClient = useQueryClient();
+
+  const groupedNotifications = React.useMemo(() => {
+    if (!notifications || notifications.length === 0) return [];
+
+    const now = new Date();
+    const today = now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toDateString();
+
+    const todayItems: Notification[] = [];
+    const yesterdayItems: Notification[] = [];
+    const earlierItems: Notification[] = [];
+
+    for (const n of notifications) {
+      const dateStr = new Date(n.created_at).toDateString();
+      if (dateStr === today) {
+        todayItems.push(n);
+      } else if (dateStr === yesterdayStr) {
+        yesterdayItems.push(n);
+      } else {
+        earlierItems.push(n);
+      }
+    }
+
+    const sections: { title: string; data: Notification[] }[] = [];
+    if (todayItems.length > 0) sections.push({ title: "Today", data: todayItems });
+    if (yesterdayItems.length > 0) sections.push({ title: "Yesterday", data: yesterdayItems });
+    if (earlierItems.length > 0) sections.push({ title: "Earlier", data: earlierItems });
+
+    return sections;
+  }, [notifications]);
 
   // Mark all as read on screen focus
   useFocusEffect(
@@ -46,19 +78,29 @@ export function NotificationsScreen() {
   const renderItem = ({ item }: { item: Notification }) => {
     const actorName =
       item.actor?.display_name || truncateAddress(item.actor_wallet);
-    const message =
-      item.type === "vouch"
-        ? `vouched ${formatSOL(item.amount_lamports ?? 0)} on your photo`
-        : "followed you";
 
     return (
       <AnimatedPressable haptic="light" onPress={() => handlePress(item)}>
         <View
-          className="flex-row items-center px-4 py-3 gap-3"
+          className="flex-row items-center px-4 py-3.5 gap-3"
           style={{
             backgroundColor: item.read ? "transparent" : "rgba(232,168,56,0.05)",
           }}
         >
+          {/* Unread indicator */}
+          {!item.read && (
+            <View
+              style={{
+                position: "absolute",
+                left: 4,
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: colors.primary,
+              }}
+            />
+          )}
+
           <Avatar
             uri={item.actor?.avatar_url}
             name={actorName}
@@ -67,7 +109,17 @@ export function NotificationsScreen() {
           <View className="flex-1">
             <Text className="text-text-primary text-sm" numberOfLines={2}>
               <Text style={{ fontWeight: "700" }}>{actorName}</Text>
-              {" "}{message}
+              {item.type === "vouch" ? (
+                <>
+                  <Text> vouched </Text>
+                  <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                    {formatSOL(item.amount_lamports ?? 0)}
+                  </Text>
+                  <Text> on your photo</Text>
+                </>
+              ) : (
+                <Text> followed you</Text>
+              )}
             </Text>
             <Text className="text-text-tertiary text-xs mt-0.5">
               {timeAgo(item.created_at)}
@@ -112,9 +164,16 @@ export function NotificationsScreen() {
         </Text>
       </View>
 
-      <FlatList
-        data={notifications}
+      <SectionList
+        sections={groupedNotifications}
         renderItem={renderItem}
+        renderSectionHeader={({ section }) => (
+          <View className="px-4 pt-5 pb-2" style={{ backgroundColor: colors.background }}>
+            <Text className="text-text-tertiary text-xs uppercase tracking-widest font-display-semibold">
+              {section.title}
+            </Text>
+          </View>
+        )}
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl
@@ -140,6 +199,7 @@ export function NotificationsScreen() {
         }
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 24 }}
+        stickySectionHeadersEnabled={false}
       />
     </View>
   );
