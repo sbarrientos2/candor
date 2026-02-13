@@ -11,7 +11,7 @@ import { PROGRAM_ID, getPhotoRecordPDA, getVouchRecordPDA } from "./solana";
 // This should match the deployed program from Solana Playground
 export const CANDOR_IDL: Idl = {
   version: "0.1.0",
-  name: "candor",
+  name: "candor_program",
   instructions: [
     {
       name: "verifyPhoto",

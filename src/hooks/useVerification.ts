@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Alert } from "react-native";
 import { useConnection } from "../utils/ConnectionProvider";
 import { useWallet } from "./useWallet";
 import { buildVerifyPhotoTransaction } from "../services/anchor";
@@ -6,6 +7,9 @@ import { uploadImage, CaptureMetadata } from "../services/verification";
 import { supabase } from "../services/supabase";
 import { PROGRAM_ID } from "../services/solana";
 import { PhotoUploadData } from "../types";
+
+const MAX_DB_RETRIES = 3;
+const DB_RETRY_DELAY_MS = 1000;
 
 // Program is deployed when ID is not the placeholder
 const PROGRAM_DEPLOYED =
@@ -34,30 +38,47 @@ export function useVerification() {
         let txSignature: string | null = null;
 
         // On-chain verification (only if program is deployed)
+        // Includes one retry on blockhash expiry
         if (PROGRAM_DEPLOYED) {
-          const { blockhash, lastValidBlockHeight } =
-            await connection.getLatestBlockhash();
+          const maxAttempts = 2;
+          for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+              const { blockhash, lastValidBlockHeight } =
+                await connection.getLatestBlockhash();
 
-          const tx = buildVerifyPhotoTransaction(
-            publicKey,
-            metadata.imageHashBytes,
-            metadata.latitude ?? 0,
-            metadata.longitude ?? 0,
-            metadata.timestamp,
-            blockhash
-          );
+              const tx = buildVerifyPhotoTransaction(
+                publicKey,
+                metadata.imageHashBytes,
+                metadata.latitude ?? 0,
+                metadata.longitude ?? 0,
+                metadata.timestamp,
+                blockhash
+              );
 
-          const slot = await connection.getSlot();
-          txSignature = await signAndSendTransaction(tx, slot);
+              const slot = await connection.getSlot();
+              txSignature = await signAndSendTransaction(tx, slot);
 
-          await connection.confirmTransaction(
-            {
-              signature: txSignature,
-              blockhash,
-              lastValidBlockHeight,
-            },
-            "confirmed"
-          );
+              await connection.confirmTransaction(
+                {
+                  signature: txSignature,
+                  blockhash,
+                  lastValidBlockHeight,
+                },
+                "confirmed"
+              );
+              break;
+            } catch (sendErr: any) {
+              const msg = sendErr.message || "";
+              const isBlockhashError =
+                msg.includes("Blockhash not found") ||
+                msg.includes("block height exceeded");
+              if (isBlockhashError && attempt < maxAttempts) {
+                console.warn("Blockhash expired, retrying with fresh blockhash...");
+                continue;
+              }
+              throw sendErr;
+            }
+          }
         }
 
         // Upload image to Supabase Storage
@@ -67,19 +88,39 @@ export function useVerification() {
           walletAddress
         );
 
-        // Insert photo record in Supabase
-        const { error: insertError } = await supabase.from("photos").insert({
-          creator_wallet: walletAddress,
-          image_url: imageUrl,
-          image_hash: metadata.imageHash,
-          caption: caption || null,
-          latitude: metadata.latitude,
-          longitude: metadata.longitude,
-          location_accuracy: metadata.locationAccuracy,
-          verification_tx: txSignature,
-        });
+        // Insert photo record in Supabase with retry logic.
+        // The on-chain verification and image upload already succeeded —
+        // if the DB write fails, the user still has the tx signature as proof.
+        let dbWriteSucceeded = false;
+        for (let attempt = 1; attempt <= MAX_DB_RETRIES; attempt++) {
+          try {
+            const { error: insertError } = await supabase.from("photos").insert({
+              creator_wallet: walletAddress,
+              image_url: imageUrl,
+              image_hash: metadata.imageHash,
+              caption: caption || null,
+              latitude: metadata.latitude,
+              longitude: metadata.longitude,
+              location_accuracy: metadata.locationAccuracy,
+              verification_tx: txSignature,
+            });
+            if (insertError) throw insertError;
+            dbWriteSucceeded = true;
+            break;
+          } catch (dbErr: any) {
+            console.error(`DB write attempt ${attempt}/${MAX_DB_RETRIES} failed:`, dbErr);
+            if (attempt < MAX_DB_RETRIES) {
+              await new Promise((r) => setTimeout(r, DB_RETRY_DELAY_MS * attempt));
+            }
+          }
+        }
 
-        if (insertError) throw insertError;
+        if (!dbWriteSucceeded) {
+          Alert.alert(
+            "Photo verified, but save failed",
+            `Your photo was verified on-chain${txSignature ? ` (tx: ${txSignature.slice(0, 12)}...)` : ""} but we couldn't save the record. It may appear after a refresh.`
+          );
+        }
 
         return {
           imageUri: metadata.imageUri,

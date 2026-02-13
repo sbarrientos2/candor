@@ -67,28 +67,46 @@ export function useVouch() {
           Buffer.from(hashBytes)
         );
 
-        const { blockhash, lastValidBlockHeight } =
-          await connection.getLatestBlockhash();
+        // Build, sign, send with one blockhash retry on expiry
+        let txSignature!: string;
+        const maxAttempts = 2;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            const { blockhash, lastValidBlockHeight } =
+              await connection.getLatestBlockhash();
 
-        const tx = buildVouchTransaction(
-          publicKey,
-          creatorPubkey,
-          photoRecordPDA,
-          amountLamports,
-          blockhash
-        );
+            const tx = buildVouchTransaction(
+              publicKey,
+              creatorPubkey,
+              photoRecordPDA,
+              amountLamports,
+              blockhash
+            );
 
-        const slot = await connection.getSlot();
-        const txSignature = await signAndSendTransaction(tx, slot);
+            const slot = await connection.getSlot();
+            txSignature = await signAndSendTransaction(tx, slot);
 
-        await connection.confirmTransaction(
-          {
-            signature: txSignature,
-            blockhash,
-            lastValidBlockHeight,
-          },
-          "confirmed"
-        );
+            await connection.confirmTransaction(
+              {
+                signature: txSignature,
+                blockhash,
+                lastValidBlockHeight,
+              },
+              "confirmed"
+            );
+            break;
+          } catch (sendErr: any) {
+            const msg = sendErr.message || "";
+            const isBlockhashError =
+              msg.includes("Blockhash not found") ||
+              msg.includes("block height exceeded");
+            if (isBlockhashError && attempt < maxAttempts) {
+              console.warn("Blockhash expired, retrying with fresh blockhash...");
+              continue;
+            }
+            throw sendErr;
+          }
+        }
 
         // Record vouch in Supabase with retry logic.
         // The on-chain transfer already succeeded — if the DB write fails,
