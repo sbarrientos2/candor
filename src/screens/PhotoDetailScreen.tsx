@@ -7,6 +7,7 @@ import {
   Dimensions,
   Alert,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -49,7 +50,7 @@ export function PhotoDetailScreen() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { photoId } = route.params;
 
-  const { data: photo, isLoading } = usePhotoDetail(photoId);
+  const { data: photo, isLoading, isError, refetch } = usePhotoDetail(photoId);
   const { data: vouches } = usePhotoVouches(photoId);
   const { vouch, isVouching, error, clearError, defaultAmount, lastSuccess, clearSuccess } = useVouch();
   const { walletAddress } = useWallet();
@@ -121,6 +122,28 @@ export function PhotoDetailScreen() {
   const { handlePress: handleImagePress } = useDoubleTap({
     onDoubleTap: handleDoubleTapVouch,
   });
+
+  if (isError) {
+    return (
+      <View className="flex-1 bg-background items-center justify-center px-8 gap-4">
+        <Text className="text-text-primary text-lg font-display-semibold text-center">
+          Something went wrong
+        </Text>
+        <Text className="text-text-tertiary text-sm text-center leading-5">
+          We couldn't load this photo. Check your connection and try again.
+        </Text>
+        <AnimatedPressable
+          haptic="light"
+          onPress={() => refetch()}
+          className="bg-primary rounded-2xl px-8 py-4 mt-2"
+        >
+          <Text className="text-background font-display-semibold text-base">
+            Retry
+          </Text>
+        </AnimatedPressable>
+      </View>
+    );
+  }
 
   if (isLoading || !photo) {
     return (
