@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Alert } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../services/supabase";
 
@@ -102,6 +103,7 @@ export function useToggleFollow() {
         queryClient.invalidateQueries({ queryKey: ["follows"] });
       } catch (err: any) {
         console.error("Toggle follow failed:", err);
+        Alert.alert("Error", err.message || "Failed to update follow status");
       } finally {
         setIsToggling(false);
       }
