@@ -128,7 +128,7 @@ export function PhotoDetailScreen() {
         {/* Image skeleton */}
         <SkeletonLoader
           width={SCREEN_WIDTH}
-          height={SCREEN_WIDTH}
+          height={SCREEN_WIDTH * 1.25}
           borderRadius={0}
         />
         {/* Content skeleton */}
@@ -192,7 +192,7 @@ export function PhotoDetailScreen() {
       <Pressable onPress={handleImagePress}>
         <Image
           source={{ uri: photo.image_url }}
-          style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH }}
+          style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.25 }}
           contentFit="cover"
           transition={200}
         />
