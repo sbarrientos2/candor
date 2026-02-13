@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Alert, StatusBar } from "react-native";
+import { View, Text, TextInput, Alert, StatusBar, ActivityIndicator } from "react-native";
 import { CameraView } from "expo-camera";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -68,7 +68,11 @@ export function CameraScreen() {
 
   // Permission: loading
   if (!permission) {
-    return <View className="flex-1 bg-background" />;
+    return (
+      <View className="flex-1 bg-background items-center justify-center">
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   // Permission: denied
