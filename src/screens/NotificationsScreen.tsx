@@ -54,12 +54,14 @@ export function NotificationsScreen() {
     return sections;
   }, [notifications]);
 
-  // Mark all as read on screen focus
+  // Mark all as read after a delay so users can see unread indicators
   useFocusEffect(
     useCallback(() => {
-      if (walletAddress) {
+      if (!walletAddress) return;
+      const timer = setTimeout(() => {
         markRead(walletAddress);
-      }
+      }, 4000);
+      return () => clearTimeout(timer);
     }, [walletAddress, markRead])
   );
 
