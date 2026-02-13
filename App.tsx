@@ -16,6 +16,7 @@ import {
 import { ConnectionProvider } from "./src/utils/ConnectionProvider";
 import { ClusterProvider } from "./src/components/cluster/cluster-data-access";
 import { AppNavigator } from "./src/navigators/AppNavigator";
+import { OfflineBanner } from "./src/components/ui/OfflineBanner";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -45,6 +46,7 @@ export default function App() {
           <ConnectionProvider config={{ commitment: "confirmed" }}>
             <SafeAreaProvider>
               <AppNavigator />
+              <OfflineBanner />
             </SafeAreaProvider>
           </ConnectionProvider>
         </ClusterProvider>
