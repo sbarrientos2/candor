@@ -17,7 +17,7 @@ module.exports = {
         "text-secondary": "#999999",
         "text-tertiary": "#808080",
         success: "#4ADE80",
-        error: "#EF4444",
+        error: "#CF6679",
       },
       fontFamily: {
         "display-medium": ["SpaceGrotesk_500Medium"],
