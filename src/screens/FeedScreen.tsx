@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { View, Text, RefreshControl, Dimensions, Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FlashList } from "@shopify/flash-list";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -66,6 +67,21 @@ export function FeedScreen() {
   const [vouchingPhotoId, setVouchingPhotoId] = useState<string | null>(null);
   const [feedView, setFeedView] = useState<FeedView>("explore");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [showDoubleTapHint, setShowDoubleTapHint] = useState(false);
+  const hintChecked = useRef(false);
+
+  useEffect(() => {
+    if (hintChecked.current) return;
+    hintChecked.current = true;
+    AsyncStorage.getItem("candor-double-tap-hint-shown").then((val) => {
+      if (!val) setShowDoubleTapHint(true);
+    });
+  }, []);
+
+  const handleHintShown = useCallback(() => {
+    setShowDoubleTapHint(false);
+    AsyncStorage.setItem("candor-double-tap-hint-shown", "1");
+  }, []);
 
   const activePhotos = feedView === "following" ? followingPhotos : explorePhotos;
   const activeIsLoading = feedView === "following" ? isLoadingFollowing : isLoadingExplore;
@@ -126,9 +142,11 @@ export function FeedScreen() {
         hasVouched={vouchedPhotoIds?.has(item.id) ?? false}
         isOwnPhoto={item.creator_wallet === walletAddress}
         vouchAmount={defaultAmount}
+        showDoubleTapHint={index === 0 && showDoubleTapHint && item.creator_wallet !== walletAddress}
+        onHintShown={handleHintShown}
       />
     ),
-    [navigation, handleVouch, vouchingPhotoId, isVouching, defaultAmount, vouchedPhotoIds, walletAddress]
+    [navigation, handleVouch, vouchingPhotoId, isVouching, defaultAmount, vouchedPhotoIds, walletAddress, showDoubleTapHint, handleHintShown]
   );
 
   if (activeIsLoading) {

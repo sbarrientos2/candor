@@ -34,6 +34,8 @@ interface PhotoCardProps {
   hasVouched?: boolean;
   isOwnPhoto?: boolean;
   vouchAmount?: number;
+  showDoubleTapHint?: boolean;
+  onHintShown?: () => void;
 }
 
 export function PhotoCard({
@@ -45,6 +47,8 @@ export function PhotoCard({
   hasVouched = false,
   isOwnPhoto = false,
   vouchAmount = 5_000_000,
+  showDoubleTapHint = false,
+  onHintShown,
 }: PhotoCardProps) {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -67,6 +71,24 @@ export function PhotoCard({
   const entranceStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
     opacity: opacity.value,
+  }));
+
+  // Double-tap hint overlay
+  const hintOpacity = useSharedValue(showDoubleTapHint ? 1 : 0);
+
+  useEffect(() => {
+    if (showDoubleTapHint) {
+      hintOpacity.value = withTiming(1, { duration: 400 });
+      const timer = setTimeout(() => {
+        hintOpacity.value = withTiming(0, { duration: 400 });
+        onHintShown?.();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showDoubleTapHint]);
+
+  const hintStyle = useAnimatedStyle(() => ({
+    opacity: hintOpacity.value,
   }));
 
   // Double-tap vouch animation
@@ -139,6 +161,39 @@ export function PhotoCard({
                 <Ionicons name="checkmark-circle" size={72} color={colors.primary} />
               </View>
             </Animated.View>
+            {/* Double-tap discovery hint */}
+            {showDoubleTapHint && (
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  hintStyle,
+                  {
+                    position: "absolute",
+                    bottom: 16,
+                    left: 0,
+                    right: 0,
+                    alignItems: "center",
+                  },
+                ]}
+              >
+                <View
+                  style={{
+                    backgroundColor: "rgba(0,0,0,0.7)",
+                    borderRadius: 20,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <Ionicons name="hand-left-outline" size={14} color={colors.primary} />
+                  <Text style={{ color: colors.textPrimary, fontSize: 12, fontWeight: "600" }}>
+                    Double-tap to vouch
+                  </Text>
+                </View>
+              </Animated.View>
+            )}
           </Pressable>
 
           {/* Metadata below photo */}
