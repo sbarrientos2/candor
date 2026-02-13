@@ -354,6 +354,9 @@ export function CameraScreen() {
                 scaleValue={0.88}
                 onPress={handleCapture}
                 disabled={isCapturing}
+                accessibilityRole="button"
+                accessibilityLabel="Take photo"
+                accessibilityState={{ disabled: isCapturing }}
                 style={isCapturing ? { opacity: 0.5 } : undefined}
               >
                 <View

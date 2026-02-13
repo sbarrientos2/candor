@@ -23,6 +23,8 @@ export function Avatar({ uri, name, size }: AvatarProps) {
   if (uri) {
     return (
       <View
+        accessibilityLabel={`Profile photo of ${name}`}
+        accessibilityRole="image"
         style={{
           width: px,
           height: px,
@@ -42,6 +44,8 @@ export function Avatar({ uri, name, size }: AvatarProps) {
 
   return (
     <View
+      accessibilityLabel={`Profile photo of ${name}`}
+      accessibilityRole="image"
       style={{
         width: px,
         height: px,

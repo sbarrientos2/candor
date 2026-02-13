@@ -69,6 +69,13 @@ export function VouchButton({
         scaleValue={0.92}
         onPress={handlePress}
         disabled={disabled || isLoading || hasVouched}
+        accessibilityRole="button"
+        accessibilityLabel={
+          hasVouched
+            ? `Vouched, ${vouchCount} vouches`
+            : `Vouch ${formatSOL(amountLamports)} SOL`
+        }
+        accessibilityState={{ disabled: disabled || isLoading || hasVouched }}
       >
         <View
           className={`flex-row items-center rounded-full px-3.5 py-2 ${

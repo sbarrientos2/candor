@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View, Text, FlatList, RefreshControl, Dimensions } from "react-native";
+import { View, Text, FlatList, RefreshControl, Dimensions, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
@@ -141,6 +141,9 @@ export function UserProfileScreen() {
               toggleFollow(myWallet, walletAddress, isFollowing ?? false)
             }
             disabled={isToggling}
+            accessibilityRole="button"
+            accessibilityLabel={isFollowing ? "Unfollow" : "Follow"}
+            accessibilityState={{ disabled: isToggling }}
             style={{
               paddingHorizontal: 20,
               paddingVertical: 8,
@@ -150,15 +153,22 @@ export function UserProfileScreen() {
               borderColor: colors.border,
             }}
           >
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "600",
-                color: isFollowing ? colors.textPrimary : colors.background,
-              }}
-            >
-              {isToggling ? "..." : isFollowing ? "Following" : "Follow"}
-            </Text>
+            {isToggling ? (
+              <ActivityIndicator
+                size="small"
+                color={isFollowing ? colors.textPrimary : colors.background}
+              />
+            ) : (
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: "600",
+                  color: isFollowing ? colors.textPrimary : colors.background,
+                }}
+              >
+                {isFollowing ? "Following" : "Follow"}
+              </Text>
+            )}
           </AnimatedPressable>
           <Text className="text-text-tertiary text-xs">
             {followCounts?.followers ?? 0} Followers{" · "}
