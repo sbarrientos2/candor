@@ -16,8 +16,7 @@ import {
 import { ConnectionProvider } from "./src/utils/ConnectionProvider";
 import { ClusterProvider } from "./src/components/cluster/cluster-data-access";
 import { AppNavigator } from "./src/navigators/AppNavigator";
-// TODO: Re-enable after dev client rebuild that includes @react-native-community/netinfo
-// import { OfflineBanner } from "./src/components/ui/OfflineBanner";
+import { OfflineBanner } from "./src/components/ui/OfflineBanner";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -47,7 +46,7 @@ export default function App() {
           <ConnectionProvider config={{ commitment: "confirmed" }}>
             <SafeAreaProvider>
               <AppNavigator />
-              {/* <OfflineBanner /> */}
+              <OfflineBanner />
             </SafeAreaProvider>
           </ConnectionProvider>
         </ClusterProvider>
