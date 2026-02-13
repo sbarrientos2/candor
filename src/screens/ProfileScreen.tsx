@@ -34,6 +34,7 @@ import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 import { SectionHeader } from "../components/ui/SectionHeader";
 import { truncateAddress, formatSOL, formatUSD } from "../utils/format";
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { Photo, RootStackParamList } from "../types";
 
@@ -257,7 +258,7 @@ export function ProfileScreen() {
                 <Text className="text-text-primary font-display-bold text-2xl">
                   {displayName}
                 </Text>
-                <Text className="text-text-tertiary text-xs ml-2">edit</Text>
+                <Ionicons name="pencil-outline" size={14} color={colors.textTertiary} style={{ marginLeft: 8 }} />
               </View>
             </AnimatedPressable>
           )}
