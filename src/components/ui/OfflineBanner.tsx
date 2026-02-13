@@ -1,29 +1,46 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNetInfo } from "@react-native-community/netinfo";
+import NetInfo from "@react-native-community/netinfo";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  runOnJS,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme/colors";
 
 export function OfflineBanner() {
-  const { isConnected } = useNetInfo();
+  const [isOffline, setIsOffline] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(-60);
 
-  const isOffline = isConnected === false;
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      // Only treat explicit false as offline (null = unknown/loading)
+      setIsOffline(state.isConnected === false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
-    translateY.value = withTiming(isOffline ? 0 : -60, { duration: 300 });
+    if (isOffline) {
+      setShouldRender(true);
+      translateY.value = withTiming(0, { duration: 300 });
+    } else {
+      translateY.value = withTiming(-60, { duration: 300 }, () => {
+        runOnJS(setShouldRender)(false);
+      });
+    }
   }, [isOffline]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
+
+  if (!shouldRender) return null;
 
   return (
     <Animated.View
