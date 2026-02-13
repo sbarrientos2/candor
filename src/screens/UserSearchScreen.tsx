@@ -6,6 +6,7 @@ import { useUserSearch } from "../hooks/useUserSearch";
 import { Avatar } from "../components/ui/Avatar";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { truncateAddress } from "../utils/format";
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme/colors";
 import { User, RootStackParamList } from "../types";
 
@@ -55,7 +56,7 @@ export function UserSearchScreen() {
           className="flex-row items-center rounded-xl px-3 py-2.5"
           style={{ backgroundColor: colors.surface }}
         >
-          <Text className="text-text-tertiary text-base mr-2">search</Text>
+          <Ionicons name="search" size={18} color={colors.textTertiary} style={{ marginRight: 8 }} />
           <TextInput
             ref={inputRef}
             value={query}
