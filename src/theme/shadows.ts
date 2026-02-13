@@ -9,6 +9,8 @@ export const goldGlow: ViewStyle = Platform.select({
   },
   android: {
     elevation: 8,
+    borderWidth: 1,
+    borderColor: "rgba(232,168,56,0.3)",
   },
 }) as ViewStyle;
 
@@ -21,6 +23,8 @@ export const subtleGoldGlow: ViewStyle = Platform.select({
   },
   android: {
     elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(232,168,56,0.2)",
   },
 }) as ViewStyle;
 
