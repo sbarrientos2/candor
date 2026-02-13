@@ -7,6 +7,7 @@ import {
   RefreshControl,
   Dimensions,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Image } from "expo-image";
 // Dynamically imported in handlePickAvatar — requires EAS rebuild to work
@@ -206,13 +207,32 @@ export function ProfileScreen() {
           haptic="light"
           onPress={handlePickAvatar}
           disabled={isUploadingAvatar}
-          style={{ marginRight: 12, opacity: isUploadingAvatar ? 0.5 : 1 }}
+          style={{ marginRight: 12 }}
         >
-          <Avatar
-            uri={userInfo?.avatar_url}
-            name={displayName}
-            size="lg"
-          />
+          <View>
+            <Avatar
+              uri={userInfo?.avatar_url}
+              name={displayName}
+              size="lg"
+            />
+            {isUploadingAvatar && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  borderRadius: 28,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ActivityIndicator size="small" color={colors.primary} />
+              </View>
+            )}
+          </View>
         </AnimatedPressable>
 
         {/* Name + edit */}
