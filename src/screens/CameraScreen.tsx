@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, Alert, StatusBar, ActivityIndicator } from "react-native";
+import React, { useState, useRef, useCallback } from "react";
+import { View, Text, TextInput, Alert, StatusBar, ActivityIndicator, Pressable } from "react-native";
 import { CameraView } from "expo-camera";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -36,6 +36,14 @@ export function CameraScreen() {
   const [facing, setFacing] = useState<"front" | "back">("back");
   const [includeLocation, setIncludeLocation] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const dismissSuccess = useCallback(() => {
+    if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+    setShowSuccess(false);
+    clearCapture();
+    setCaption("");
+  }, [clearCapture]);
 
   // Ring pulse animation values
   const ringScale = useSharedValue(1);
@@ -114,12 +122,18 @@ export function CameraScreen() {
 
         {/* Success overlay */}
         {showSuccess && (
-          <View className="absolute inset-0 bg-black/70 items-center justify-center">
+          <Pressable
+            onPress={dismissSuccess}
+            className="absolute inset-0 bg-black/70 items-center justify-center"
+          >
             <VerificationBadge size="lg" animate />
             <Text className="text-text-primary font-display-bold text-xl mt-4">
               Verified & Posted
             </Text>
-          </View>
+            <Text className="text-text-tertiary text-xs mt-3">
+              Tap to dismiss
+            </Text>
+          </Pressable>
         )}
 
         {/* Bottom controls — floating over preview */}
@@ -161,11 +175,9 @@ export function CameraScreen() {
                       Haptics.NotificationFeedbackType.Success
                     );
                     setShowSuccess(true);
-                    setTimeout(() => {
-                      setShowSuccess(false);
-                      clearCapture();
-                      setCaption("");
-                    }, 2000);
+                    successTimeoutRef.current = setTimeout(() => {
+                      dismissSuccess();
+                    }, 1500);
                   } else if (error) {
                     Haptics.notificationAsync(
                       Haptics.NotificationFeedbackType.Error
