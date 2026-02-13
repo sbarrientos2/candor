@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Alert } from "react-native";
 import { PublicKey } from "@solana/web3.js";
 import { useQueryClient } from "@tanstack/react-query";
 import { useConnection } from "../utils/ConnectionProvider";
@@ -10,7 +11,10 @@ import { hashToBytes } from "../utils/crypto";
 import { formatSOL } from "../utils/format";
 
 const DEFAULT_VOUCH_LAMPORTS = 5_000_000; // 0.005 SOL
+const MAX_VOUCH_LAMPORTS = 5_000_000_000; // 5 SOL — must match program constant
 const ESTIMATED_FEE = 15_000; // tx fee + rent buffer in lamports
+const MAX_DB_RETRIES = 3;
+const DB_RETRY_DELAY_MS = 1000;
 
 export function useVouch() {
   const { connection } = useConnection();
@@ -34,6 +38,11 @@ export function useVouch() {
 
       if (walletAddress === creatorWallet) {
         setError("Cannot vouch for your own photo");
+        return null;
+      }
+
+      if (amountLamports > MAX_VOUCH_LAMPORTS) {
+        setError("Vouch amount exceeds maximum of 5 SOL");
         return null;
       }
 
@@ -81,19 +90,44 @@ export function useVouch() {
           "confirmed"
         );
 
-        // Record vouch in Supabase
-        await supabase.from("vouches").insert({
-          photo_id: photoId,
-          voucher_wallet: walletAddress,
-          amount_lamports: amountLamports,
-          tx_signature: txSignature,
-        });
+        // Record vouch in Supabase with retry logic.
+        // The on-chain transfer already succeeded — if the DB write fails,
+        // the user still has the tx signature as proof of payment.
+        let dbWriteSucceeded = false;
+        for (let attempt = 1; attempt <= MAX_DB_RETRIES; attempt++) {
+          try {
+            const { error: insertError } = await supabase.from("vouches").insert({
+              photo_id: photoId,
+              voucher_wallet: walletAddress,
+              amount_lamports: amountLamports,
+              tx_signature: txSignature,
+            });
+            if (insertError) throw insertError;
 
-        // Update photo's vouch count and earnings
-        await supabase.rpc("increment_vouch", {
-          p_photo_id: photoId,
-          p_amount: amountLamports,
-        });
+            const { error: rpcError } = await supabase.rpc("increment_vouch", {
+              p_photo_id: photoId,
+              p_amount: amountLamports,
+            });
+            if (rpcError) throw rpcError;
+
+            dbWriteSucceeded = true;
+            break;
+          } catch (dbErr: any) {
+            console.error(`DB write attempt ${attempt}/${MAX_DB_RETRIES} failed:`, dbErr);
+            if (attempt < MAX_DB_RETRIES) {
+              await new Promise((r) => setTimeout(r, DB_RETRY_DELAY_MS * attempt));
+            }
+          }
+        }
+
+        if (!dbWriteSucceeded) {
+          // SOL was transferred on-chain but DB record failed.
+          // Show a warning with the tx signature so the user has proof.
+          Alert.alert(
+            "Vouch sent, but recording failed",
+            `Your ${formatSOL(amountLamports)} SOL was sent on-chain (tx: ${txSignature.slice(0, 12)}...) but we couldn't save the record. It may appear after a refresh.`
+          );
+        }
 
         // Invalidate caches so all screens reflect the new vouch
         queryClient.invalidateQueries({ queryKey: ["vouches"] });

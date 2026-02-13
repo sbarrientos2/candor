@@ -3,6 +3,9 @@ use anchor_lang::system_program;
 
 declare_id!("HDvUruses5D2tPCUZnhkLiR4GB2B49GwkpjJJUKjCAvw");
 
+/// Maximum vouch amount: 5 SOL (matches client-side BoostModal cap)
+const MAX_VOUCH_LAMPORTS: u64 = 5_000_000_000;
+
 #[program]
 pub mod candor_program {
     use super::*;
@@ -35,6 +38,7 @@ pub mod candor_program {
     /// One vouch per user per photo (enforced by PDA uniqueness).
     pub fn vouch(ctx: Context<Vouch>, amount: u64) -> Result<()> {
         require!(amount > 0, CandorError::InvalidAmount);
+        require!(amount <= MAX_VOUCH_LAMPORTS, CandorError::AmountExceedsMax);
         require!(
             ctx.accounts.voucher.key() != ctx.accounts.photo_record.creator,
             CandorError::CannotVouchOwnPhoto
@@ -57,8 +61,14 @@ pub mod candor_program {
 
         // Update photo record
         let photo = &mut ctx.accounts.photo_record;
-        photo.vouch_count = photo.vouch_count.checked_add(1).unwrap();
-        photo.total_earned = photo.total_earned.checked_add(amount).unwrap();
+        photo.vouch_count = photo
+            .vouch_count
+            .checked_add(1)
+            .ok_or(CandorError::Overflow)?;
+        photo.total_earned = photo
+            .total_earned
+            .checked_add(amount)
+            .ok_or(CandorError::Overflow)?;
 
         // Initialize vouch record
         let vouch_record = &mut ctx.accounts.vouch_record;
@@ -158,8 +168,12 @@ pub struct VouchRecord {
 pub enum CandorError {
     #[msg("Vouch amount must be greater than zero")]
     InvalidAmount,
+    #[msg("Vouch amount exceeds maximum of 5 SOL")]
+    AmountExceedsMax,
     #[msg("Cannot vouch for your own photo")]
     CannotVouchOwnPhoto,
     #[msg("Invalid creator account")]
     InvalidCreator,
+    #[msg("Arithmetic overflow")]
+    Overflow,
 }
