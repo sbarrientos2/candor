@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View, Text, FlatList, Dimensions } from "react-native";
+import { View, Text, FlatList, RefreshControl, Dimensions } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
@@ -10,6 +10,7 @@ import Animated, {
   withTiming,
   withSpring,
 } from "react-native-reanimated";
+import { useQueryClient } from "@tanstack/react-query";
 import { useUserPhotos, useUserInfo } from "../hooks/usePhotos";
 import { useEarnings, useSolPrice } from "../hooks/useEarnings";
 import { useIsFollowing, useFollowCounts, useToggleFollow } from "../hooks/useFollow";
@@ -38,14 +39,23 @@ export function UserProfileScreen() {
   const { walletAddress } = route.params;
 
   const { walletAddress: myWallet } = useWallet();
+  const queryClient = useQueryClient();
   const { data: userInfo, isLoading: isLoadingUser } = useUserInfo(walletAddress);
-  const { data: photos, isLoading: isLoadingPhotos } = useUserPhotos(walletAddress);
-  const { data: earnings } = useEarnings(walletAddress);
+  const { data: photos, isLoading: isLoadingPhotos, isRefetching: isRefetchingPhotos } = useUserPhotos(walletAddress);
+  const { data: earnings, isRefetching: isRefetchingEarnings } = useEarnings(walletAddress);
   const { data: solPrice } = useSolPrice();
   const { data: isFollowing } = useIsFollowing(myWallet, walletAddress);
   const { data: followCounts } = useFollowCounts(walletAddress);
   const { toggleFollow, isToggling } = useToggleFollow();
   const isOwnProfile = myWallet === walletAddress;
+  const isRefreshing = isRefetchingPhotos || isRefetchingEarnings;
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["photos", "user", walletAddress] });
+    queryClient.invalidateQueries({ queryKey: ["earnings", walletAddress] });
+    queryClient.invalidateQueries({ queryKey: ["user-info", walletAddress] });
+    queryClient.invalidateQueries({ queryKey: ["follows"] });
+  };
 
   const isLoading = isLoadingUser || isLoadingPhotos;
 
@@ -284,6 +294,15 @@ export function UserProfileScreen() {
         numColumns={NUM_COLUMNS}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={{ paddingHorizontal: SCREEN_PAD, paddingBottom: 24 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.surface}
+          />
+        }
         ListEmptyComponent={
           <View className="items-center justify-center px-8 py-16 gap-4">
             <Text className="text-text-primary text-lg font-display-semibold text-center">
