@@ -16,7 +16,7 @@ module.exports = {
         "primary-light": "#F5C563",
         "text-primary": "#F0EDEA",
         "text-secondary": "#999999",
-        "text-tertiary": "#666666",
+        "text-tertiary": "#808080",
         success: "#4ADE80",
         error: "#EF4444",
       },

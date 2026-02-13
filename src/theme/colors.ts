@@ -7,7 +7,7 @@ export const colors = {
   primaryLight: "#F5C563",
   textPrimary: "#F0EDEA",
   textSecondary: "#999999",
-  textTertiary: "#666666",
+  textTertiary: "#808080",
   success: "#4ADE80",
   error: "#EF4444",
 } as const;
