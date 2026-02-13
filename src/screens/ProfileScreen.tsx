@@ -266,7 +266,16 @@ export function ProfileScreen() {
         {/* Wallet pill — subtle */}
         <AnimatedPressable
           haptic="light"
-          onPress={disconnectWallet}
+          onPress={() => {
+            Alert.alert(
+              "Disconnect Wallet?",
+              "You'll need to reconnect through Phantom to use Candor.",
+              [
+                { text: "Cancel", style: "cancel" },
+                { text: "Disconnect", style: "destructive", onPress: disconnectWallet },
+              ]
+            );
+          }}
           className="flex-row items-center rounded-full px-3 py-1.5 mt-1"
           style={{ backgroundColor: "rgba(37,37,46,0.6)" }}
         >
