@@ -11,6 +11,7 @@ import { FeedMap } from "../components/FeedMap";
 import { AnimatedPressable } from "../components/ui/AnimatedPressable";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 import { VouchSuccessToast } from "../components/ui/VouchSuccessToast";
+import { ConfirmationModal } from "../components/ui/ConfirmationModal";
 import { useFeedPhotos, useFollowingFeedPhotos, useRefreshFeed, useUserVouchedPhotoIds } from "../hooks/usePhotos";
 import { useVouch } from "../hooks/useVouch";
 import { useWallet } from "../hooks/useWallet";
@@ -67,6 +68,7 @@ export function FeedScreen() {
   const [vouchingPhotoId, setVouchingPhotoId] = useState<string | null>(null);
   const [feedView, setFeedView] = useState<FeedView>("explore");
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [pendingVouchPhoto, setPendingVouchPhoto] = useState<Photo | null>(null);
   const [showDoubleTapHint, setShowDoubleTapHint] = useState(false);
   const hintChecked = useRef(false);
 
@@ -104,30 +106,25 @@ export function FeedScreen() {
 
   const handleVouch = useCallback(
     (photo: Photo) => {
-      Alert.alert(
-        "Vouch for this photo?",
-        `This will send ${formatSOL(defaultAmount)} to the creator.`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Vouch",
-            onPress: async () => {
-              setVouchingPhotoId(photo.id);
-              await vouch(
-                photo.id,
-                photo.creator_wallet,
-                photo.image_hash,
-                defaultAmount
-              );
-              setVouchingPhotoId(null);
-              refreshFeed();
-            },
-          },
-        ]
-      );
+      setPendingVouchPhoto(photo);
     },
-    [vouch, defaultAmount, refreshFeed]
+    []
   );
+
+  const confirmVouch = useCallback(async () => {
+    if (!pendingVouchPhoto) return;
+    const photo = pendingVouchPhoto;
+    setPendingVouchPhoto(null);
+    setVouchingPhotoId(photo.id);
+    await vouch(
+      photo.id,
+      photo.creator_wallet,
+      photo.image_hash,
+      defaultAmount
+    );
+    setVouchingPhotoId(null);
+    refreshFeed();
+  }, [pendingVouchPhoto, vouch, defaultAmount, refreshFeed]);
 
   const renderItem = useCallback(
     ({ item, index }: { item: Photo; index: number }) => (
@@ -264,6 +261,15 @@ export function FeedScreen() {
         />
       )}
 
+
+      <ConfirmationModal
+        visible={pendingVouchPhoto !== null}
+        title="Vouch for this photo?"
+        message={`This will send ${formatSOL(defaultAmount)} SOL to the creator.`}
+        confirmLabel="Vouch"
+        onConfirm={confirmVouch}
+        onCancel={() => setPendingVouchPhoto(null)}
+      />
 
       <VouchSuccessToast
         visible={showSuccessToast}

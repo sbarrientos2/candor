@@ -32,6 +32,7 @@ import { BoostModal } from "../components/BoostModal";
 import { SkeletonLoader } from "../components/ui/SkeletonLoader";
 import { SectionHeader } from "../components/ui/SectionHeader";
 import { VouchSuccessToast } from "../components/ui/VouchSuccessToast";
+import { ConfirmationModal } from "../components/ui/ConfirmationModal";
 import {
   truncateAddress,
   timeAgo,
@@ -56,6 +57,7 @@ export function PhotoDetailScreen() {
   const { walletAddress } = useWallet();
   const [boostModalVisible, setBoostModalVisible] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [showVouchConfirm, setShowVouchConfirm] = useState(false);
 
   useEffect(() => {
     if (lastSuccess) {
@@ -99,25 +101,8 @@ export function PhotoDetailScreen() {
 
   const handleDoubleTapVouch = useCallback(() => {
     if (!photo || isOwnPhoto || hasVouched || isVouching) return;
-    Alert.alert(
-      "Vouch for this photo?",
-      `This will send ${formatSOL(defaultAmount)} to the creator.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Vouch",
-          onPress: async () => {
-            await vouch(
-              photo.id,
-              photo.creator_wallet,
-              photo.image_hash,
-              defaultAmount
-            );
-          },
-        },
-      ]
-    );
-  }, [photo, isOwnPhoto, hasVouched, isVouching, defaultAmount, vouch]);
+    setShowVouchConfirm(true);
+  }, [photo, isOwnPhoto, hasVouched, isVouching]);
 
   const { handlePress: handleImagePress } = useDoubleTap({
     onDoubleTap: handleDoubleTapVouch,
@@ -173,23 +158,16 @@ export function PhotoDetailScreen() {
   }
 
   const handleVouch = () => {
-    Alert.alert(
-      "Vouch for this photo?",
-      `This will send ${formatSOL(defaultAmount)} to the creator.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Vouch",
-          onPress: async () => {
-            await vouch(
-              photo.id,
-              photo.creator_wallet,
-              photo.image_hash,
-              defaultAmount
-            );
-          },
-        },
-      ]
+    setShowVouchConfirm(true);
+  };
+
+  const confirmVouch = async () => {
+    setShowVouchConfirm(false);
+    await vouch(
+      photo.id,
+      photo.creator_wallet,
+      photo.image_hash,
+      defaultAmount
     );
   };
 
@@ -378,6 +356,15 @@ export function PhotoDetailScreen() {
         )}
       </Animated.View>
     </ScrollView>
+
+    <ConfirmationModal
+      visible={showVouchConfirm}
+      title="Vouch for this photo?"
+      message={`This will send ${formatSOL(defaultAmount)} SOL to the creator.`}
+      confirmLabel="Vouch"
+      onConfirm={confirmVouch}
+      onCancel={() => setShowVouchConfirm(false)}
+    />
 
     <BoostModal
       visible={boostModalVisible}
